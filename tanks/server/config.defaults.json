@@ -1,0 +1,12 @@
+{
+  "world":  { "size": 3200, "gridStep": 40 },
+  "player": { "radius": 18, "baseSpeed": 240, "baseHp": 100, "baseRegen": 2, "baseBody": 12, "accel": 7 },
+  "bullet": { "baseSpeed": 420, "baseDamage": 8, "basePen": 10, "baseReload": 0.5, "life": 1.6, "radius": 6, "recoil": 55, "hitCost": 10 },
+  "stats":  { "maxPerStat": 5, "regenPer": 1.4, "hpPer": 24, "bodyPer": 7, "bulletSpeedPer": 45, "penPer": 7, "dmgPer": 4, "reloadPer": 0.05, "speedPer": 26 },
+  "level":  { "max": 30, "xpBase": 6, "xpPow": 1.5, "classAt": 15 },
+  "shapes": { "count": 70, "squareHp": 12, "squareXp": 12, "triHp": 36, "triXp": 30, "pentaHp": 120, "pentaXp": 150, "pentaWeight": 0.08, "triWeight": 0.25, "drift": 12, "touchDmg": 5 },
+  "bots":   { "maxAlive": 4, "respawnDelay": 12, "minSpawnDist": 700, "aimError": 0.12, "viewRange": 520, "fleeHpRatio": 0.25, "levelDiv": 35, "levelBase": 2, "levelCap": 22, "killXpBase": 60, "killXpPerLv": 12, "speedMul": 0.92 },
+  "classes": { "twinDmg": 0.8, "twinCycle": 0.55, "sniperDmg": 1.6, "sniperSpeed": 1.5, "sniperReload": 2.0, "mgReload": 0.55, "mgDmg": 0.7, "mgSpread": 0.18 },
+  "combat": { "spawnInvuln": 2, "bodyKnockback": 160, "regenDelay": 6 },
+  "leaderboard": { "topN": 10 }
+}

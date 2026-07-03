@@ -1,0 +1,12 @@
+{
+  "name": "tanky",
+  "version": "1.0.0",
+  "private": true,
+  "description": "tanky — 싱글플레이 탱크 아레나 스코어어택 (팀 내부용)",
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.0"
+  }
+}

@@ -1,10 +1,10 @@
-// boom — 단일 서버: 정적 서빙 + config + 랭킹 + 관리자 API
+// tanky — 단일 서버: 정적 서빙 + config + 랭킹 + 관리자 API (boom 패턴 계승)
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = process.env.PORT || 3000;
-const ADMIN_KEY = process.env.ADMIN_KEY || 'boom-admin';
+const PORT = process.env.PORT || 3100;
+const ADMIN_KEY = process.env.ADMIN_KEY || 'tanky-admin';
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data'); // Render 영구디스크 대응
 const SCORES_FILE = path.join(DATA_DIR, 'scores.json');
 const OVERRIDES_FILE = path.join(DATA_DIR, 'config.overrides.json');
@@ -16,28 +16,6 @@ const saveJson = (f, obj) => fs.writeFileSync(f, JSON.stringify(obj, null, 2));
 
 let scores = loadJson(SCORES_FILE, []);
 let overrides = loadJson(OVERRIDES_FILE, {});
-
-// 봇 시딩 — 빈 리더보드는 차갑다. 명백한 봇 이름으로 난이도 사다리 제공 (재시작/리셋 시 자동 복구)
-const SEED_BOTS = [
-  // 봇 사다리 — 난이도 목표
-  { name: '🤖 우주먼지봇', score: 120, survival: 45, maxCombo: 4, nearMiss: 6 },
-  { name: '🤖 소행성지기', score: 260, survival: 80, maxCombo: 6, nearMiss: 12 },
-  { name: '🤖 헌터킬러', score: 450, survival: 115, maxCombo: 8, nearMiss: 20 },
-  { name: '👾 UFO마스터', score: 700, survival: 160, maxCombo: 9, nearMiss: 30 },
-  { name: '👑 은하최강자', score: 1000, survival: 210, maxCombo: 10, nearMiss: 45 },
-  // 팀원 시드 — 낮은 점수 (첫 판에 바로 추월 가능, 본인 실제 기록 올리면 자동 대체됨)
-  { name: '황강수', score: 96, survival: 41, maxCombo: 3, nearMiss: 5 },
-  { name: '김철균', score: 73, survival: 35, maxCombo: 3, nearMiss: 4 },
-  { name: '박주현', score: 58, survival: 28, maxCombo: 2, nearMiss: 3 },
-  { name: '성민', score: 44, survival: 22, maxCombo: 2, nearMiss: 2 },
-];
-function seedIfEmpty() {
-  if (scores.length > 0) return;
-  scores = SEED_BOTS.map((b, i) => ({ ...b, mode: 'CLASSIC', cleared: false, at: Date.now() - (SEED_BOTS.length - i) * 3600e3 }));
-  saveJson(SCORES_FILE, scores);
-  console.log('leaderboard seeded with bots');
-}
-seedIfEmpty();
 
 // 깊은 병합: defaults ← overrides (숫자만 허용)
 function mergedConfig() {
@@ -54,9 +32,8 @@ function mergedConfig() {
 
 const app = express();
 app.use(express.json());
-// no-cache: 브라우저가 매번 서버에 변경 확인 (304면 캐시 사용) → 배포 후 구버전 섞임 방지
 app.use(express.static(path.join(__dirname, '..', 'public'), {
-  setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache'),
+  setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache'), // 배포 후 구버전 섞임 방지
 }));
 
 const adminOnly = (req, res, next) =>
@@ -70,10 +47,10 @@ app.post('/api/admin/config', adminOnly, (req, res) => {
   res.json({ ok: true, config: mergedConfig() });
 });
 app.post('/api/admin/reset-scores', adminOnly, (req, res) => {
-  scores = []; seedIfEmpty(); res.json({ ok: true });
+  scores = []; saveJson(SCORES_FILE, scores); res.json({ ok: true });
 });
 
-// 점수 제출 — 팀 내부용이라 안티치트 없음, sanity 클램프만
+// 점수 제출 — 팀 내부용, sanity 클램프만
 app.post('/api/scores', (req, res) => {
   const b = req.body || {};
   const name = String(b.name || '').trim().slice(0, 12);
@@ -81,12 +58,11 @@ app.post('/api/scores', (req, res) => {
   const clamp = (v, max) => Math.max(0, Math.min(Math.round(Number(v) || 0), max));
   const entry = {
     name,
-    mode: String(b.mode || 'CLASSIC').slice(0, 16),
-    score: clamp(b.score, 1000000),
+    score: clamp(b.score, 5000000),
+    level: clamp(b.level, 30),
+    kills: clamp(b.kills, 500),
     survival: clamp(b.survival, 7200),
-    maxCombo: clamp(b.maxCombo, 99),
-    nearMiss: clamp(b.nearMiss, 500),
-    cleared: !!b.cleared,
+    cls: String(b.cls || 'basic').slice(0, 16),
     at: Date.now(),
   };
   scores.push(entry);
@@ -96,7 +72,7 @@ app.post('/api/scores', (req, res) => {
 });
 
 // 보드별 랭킹 — 이름당 베스트 1개만
-const BOARDS = { score: 'score', survival: 'survival', combo: 'maxCombo', nearmiss: 'nearMiss' };
+const BOARDS = { score: 'score', level: 'level', kills: 'kills', survival: 'survival' };
 app.get('/api/leaderboard', (req, res) => {
   const key = BOARDS[req.query.board] || 'score';
   const best = new Map();
@@ -106,10 +82,9 @@ app.get('/api/leaderboard', (req, res) => {
   }
   const topN = mergedConfig().leaderboard.topN;
   const list = [...best.values()].sort((a, b) => b[key] - a[key]).slice(0, topN);
-  res.json({ board: req.query.board || 'score', key, list });
+  res.json({ board: key, list });
 });
 
 app.listen(PORT, () => {
-  console.log(`boom  →  http://localhost:${PORT}`);
-  console.log(`admin →  http://localhost:${PORT}/admin.html  (key: ${ADMIN_KEY})`);
+  console.log(`tanky http://localhost:${PORT}  (admin key: ${ADMIN_KEY})`);
 });

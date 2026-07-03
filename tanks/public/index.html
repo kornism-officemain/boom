@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tanky — 탱크 아레나</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="stage">
+  <canvas id="game" width="960" height="600"></canvas>
+
+  <!-- 메뉴 -->
+  <div id="screen-menu" class="screen">
+    <h1>tanky<span>.</span></h1>
+    <p class="tagline">도형을 부수고, 성장하고, 붉은 탱크를 격파하라</p>
+    <div class="menu-box">
+      <input id="name-input" maxlength="12" placeholder="이름 (12자)" autocomplete="off">
+      <button id="btn-start" class="primary">출격</button>
+    </div>
+    <div class="howto">
+      <b>WASD</b> 이동 · <b>마우스</b> 조준 · <b>클릭/스페이스</b> 사격 · <b>1~8</b> 스탯 분배<br>
+      노랑·주황·보라 도형 = XP · <span class="red">빨간 탱크</span> = 위협 · Lv15에서 클래스 선택 · 목숨은 하나
+    </div>
+    <ol id="menu-board" class="board mini"></ol>
+  </div>
+
+  <!-- 플레이 HUD -->
+  <div id="screen-play" class="screen transparent hidden">
+    <div id="hud-top">
+      <span>점수 <b id="hud-score">0</b></span>
+      <span>격파 <b id="hud-kills">0</b></span>
+      <span><b id="hud-time">0:00</b></span>
+    </div>
+    <div id="hud-bottom">
+      <div id="hp-bar"><i id="hp-fill"></i></div>
+      <div id="xp-bar"><i id="xp-fill"></i><span id="hud-level">Lv 1 기본</span></div>
+    </div>
+    <div id="hud-points" class="hidden"></div>
+    <div id="stat-panel"></div>
+    <div id="class-modal" class="hidden">
+      <h2>클래스 선택</h2>
+      <div id="class-cards"></div>
+    </div>
+  </div>
+
+  <!-- 결과 -->
+  <div id="screen-result" class="screen hidden">
+    <h2>격파당했다</h2>
+    <p id="r-cause" class="dim"></p>
+    <div id="r-newbest" class="hidden">★ NEW BEST ★</div>
+    <div id="r-score">0</div>
+    <p id="r-detail"></p>
+    <p id="r-best" class="dim"></p>
+    <div class="btn-row">
+      <button id="btn-retry" class="primary">한 판 더</button>
+      <button id="btn-menu">메뉴</button>
+    </div>
+    <div class="board-tabs">
+      <button data-board="score" class="active">점수</button>
+      <button data-board="level">레벨</button>
+      <button data-board="kills">격파</button>
+      <button data-board="survival">생존</button>
+    </div>
+    <ol id="board-list" class="board"></ol>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
