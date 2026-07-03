@@ -255,7 +255,7 @@ export function runGame(cfg, canvas, hud, onEnd) {
       ny += (mv.ty + cam.y - p.y) * f;
     }
     const dx = nx - p.x, dy = ny - p.y, dist = Math.hypot(dx, dy), maxD = cfg.player.maxSpeed * spd * dt;
-    if (dist > maxD) { nx = p.x + (dx / dist) * maxD; ny = p.y + (dy / dist) * maxD; }
+    if (dist > maxD && dist > 0) { nx = p.x + (dx / dist) * maxD; ny = p.y + (dy / dist) * maxD; } // dist=0 → 0/0 NaN 방지
     if (dist > 1.5) s.face = Math.atan2(ny - p.y, nx - p.x);
     s.moving = dist > 1.5;
     p.x = Math.max(p.r, Math.min(WORLD.w - p.r, nx));
@@ -598,7 +598,7 @@ export function runGame(cfg, canvas, hud, onEnd) {
 
   let raf, last = performance.now(), endDelay = 0;
   function frame(now) {
-    let dt = Math.min((now - last) / 1000, 1 / 30);
+    let dt = Math.max(0.0001, Math.min((now - last) / 1000, 1 / 30)); // 음수 dt 방지 — rAF 타임스탬프가 시작 시각보다 과거일 수 있음 (NaN 오염 버그)
     last = now;
     if (s.slowmo > 0) { s.slowmo -= dt; dt *= 0.25; }
     if (!s.over) update(dt);
