@@ -10,17 +10,18 @@
 <div id="stage">
   <canvas id="game" width="960" height="600"></canvas>
 
-  <!-- HUD (플레이 중): 점수 / 위험도 게이지+스톱워치 / 라이프 -->
+  <!-- HUD (플레이 중): [레벨·시간] [점수(중앙 대형)] [라이프] -->
   <div id="hud" class="hidden">
     <div id="hud-left">
-      <div id="hud-score">0</div>
-      <span id="hud-level">Lv.1</span>
+      <span id="hud-time">🕐 0s</span>
+      <span id="hud-boost" class="hidden">×2 BOOST</span>
     </div>
-    <div id="hud-timebar">
-      <div id="hud-timefill" class="b-blue"></div>
-      <span id="hud-timetext">🕐 0s</span>
+    <div id="hud-score-wrap">
+      <div id="hud-score-label">SCORE</div>
+      <div id="hud-score">0</div>
     </div>
     <div id="hud-lives">♥♥♥</div>
+    <div id="levelup-banner" class="hidden"></div>
   </div>
 
   <!-- 첫 화면 -->
@@ -29,9 +30,6 @@
     <p class="tagline"><span class="good">파란 건 먹고</span>, <span class="bad">빨간 건 피한다</span>. 그게 전부다.</p>
     <p class="tagline sub">목숨 3개. 얼마나 오래, 얼마나 많이 먹고 버티는가.</p>
     <input id="name-input" maxlength="12" placeholder="이름 입력" autocomplete="off">
-    <div class="mode-row">
-      <button class="mode-btn selected" data-mode="CLASSIC">CLASSIC</button>
-    </div>
     <button id="btn-start" class="primary">START</button>
     <button id="btn-howto">자세히 보기 <span id="howto-badge" class="badge">!</span></button>
     <p class="hint">마우스 따라가기 또는 방향키/WASD · M: 사운드</p>

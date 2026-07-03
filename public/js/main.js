@@ -7,7 +7,7 @@ import { showScreen, initHowto, showResult, renderBoard } from './ui.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('game');
-const hud = { score: $('hud-score'), lives: $('hud-lives'), barFill: $('hud-timefill'), barText: $('hud-timetext'), level: $('hud-level') };
+const hud = { score: $('hud-score'), lives: $('hud-lives'), time: $('hud-time'), boost: $('hud-boost'), banner: $('levelup-banner') };
 
 let cfg = null;
 let mode = 'CLASSIC';
@@ -24,7 +24,8 @@ async function startRun() {
   cfg = await getConfig(); // 매 런마다 최신 config — 관리자 밸런싱 즉시 반영
   showScreen('play');
   playing = true;
-  if (hud.level) hud.level.textContent = 'Lv.1'; // 구버전 HTML 캐시 방어
+  if (hud.boost) hud.boost.className = 'hidden'; // 런 시작 시 부스터 배지 리셋
+  if (hud.banner) hud.banner.classList.add('hidden');
   runGame(cfg, canvas, hud, onRunEnd);
 }
 
@@ -54,12 +55,6 @@ function boot() {
       $('hud-score').title = m ? '음소거' : '';
     }
   });
-  document.querySelectorAll('.mode-btn').forEach((b) =>
-    b.addEventListener('click', () => {
-      document.querySelectorAll('.mode-btn').forEach((x) => x.classList.remove('selected'));
-      b.classList.add('selected');
-      mode = b.dataset.mode;
-    }));
   document.querySelectorAll('.board-tabs .tab').forEach((b) =>
     b.addEventListener('click', () => renderBoard(b.dataset.board, getName())));
 

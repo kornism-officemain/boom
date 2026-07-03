@@ -1,7 +1,11 @@
 // 시각 효과 — 파티클, 플로터(텍스트 팝업), 화면 흔들림/플래시.
 // 여기의 숫자는 밸런스가 아닌 연출 상수 (config 대상 아님).
 export function createFx() {
-  return { parts: [], floats: [], shake: 0, flash: 0, flashColor: 'rgba(255,80,80,0.25)' };
+  return { parts: [], floats: [], rings: [], shake: 0, flash: 0, flashColor: 'rgba(255,80,80,0.25)' };
+}
+
+export function ring(fx, x, y, color, maxR = 120, speed = 340) {
+  fx.rings.push({ x, y, r: 8, maxR, speed, color, life: 1 });
 }
 
 export function burst(fx, x, y, color, n = 8, speed = 180) {
@@ -23,12 +27,19 @@ export function updateFx(fx, dt) {
   fx.flash = Math.max(0, fx.flash - dt);
   for (const p of fx.parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.92; p.vy *= 0.92; p.life -= dt; }
   for (const f of fx.floats) { f.y -= 40 * dt; f.life -= dt; }
+  for (const r of fx.rings) { r.r += r.speed * dt; r.life = 1 - r.r / r.maxR; }
   fx.parts = fx.parts.filter((p) => p.life > 0);
   fx.floats = fx.floats.filter((f) => f.life > 0);
+  fx.rings = fx.rings.filter((r) => r.life > 0);
 }
 
 // 월드 좌표계 안에서 호출 (셰이크 translate 적용 상태)
 export function drawFx(fx, ctx) {
+  for (const r of fx.rings) {
+    ctx.globalAlpha = Math.max(0, r.life) * 0.8;
+    ctx.strokeStyle = r.color; ctx.lineWidth = 3 + r.life * 3;
+    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
+  }
   for (const p of fx.parts) {
     ctx.globalAlpha = p.life / p.max; ctx.fillStyle = p.color;
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (p.life / p.max), 0, Math.PI * 2); ctx.fill();

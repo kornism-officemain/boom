@@ -75,14 +75,28 @@ button.retry {
   display: flex; justify-content: space-between; align-items: center;
   padding: 0 24px; font-weight: 800; pointer-events: none;
 }
-#hud-left { display: flex; align-items: center; gap: 8px; min-width: 130px; }
-#hud-score {
-  font-size: 26px; text-align: left; color: var(--ink);
-  transform-origin: left center;
+#hud-left { display: flex; align-items: center; gap: 8px; min-width: 150px; }
+#hud-time { font-size: 17px; font-weight: 800; color: var(--ink); opacity: .75; }
+#hud-boost {
+  font-size: 13px; font-weight: 800; color: #fff;
+  padding: 3px 10px; border-radius: 10px;
+  animation: pulse 0.8s infinite;
 }
-#hud-level {
-  font-size: 12px; font-weight: 800; color: #fff; background: var(--accent);
-  padding: 2px 8px; border-radius: 9px;
+#hud-boost.b2 { background: var(--accent); }
+#hud-boost.b3 { background: #e8a13c; }
+/* 점수 — HUD의 주인공. 중앙 대형 + 글로우 */
+#hud-score-wrap {
+  position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+  text-align: center; pointer-events: none;
+}
+#hud-score-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 4px; opacity: .45;
+}
+#hud-score {
+  font-size: 44px; font-weight: 900; line-height: 1; color: var(--good-deep);
+  text-shadow: 0 2px 12px rgba(90, 169, 230, .5), 0 0 2px rgba(43, 111, 179, .6);
+  font-variant-numeric: tabular-nums;
+  transform-origin: center top;
 }
 #hud-score.pop1 { animation: spop1 .22s ease-out; }
 #hud-score.pop2 { animation: spop2 .3s ease-out; color: var(--good-deep); }
@@ -91,23 +105,27 @@ button.retry {
 @keyframes spop2 { 30% { transform: scale(1.4); } 100% { transform: scale(1); } }
 @keyframes spop3 { 30% { transform: scale(1.75) rotate(-2deg); } 100% { transform: scale(1); } }
 
-#hud-timebar {
-  position: relative; width: 340px; height: 26px;
-  background: #e9e4d8; border-radius: 13px; overflow: hidden;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,.12);
-}
-#hud-timefill { height: 100%; border-radius: 13px; transition: width .3s linear, background-color .8s; }
-#hud-timefill.b-blue { background: var(--good); }
-#hud-timefill.b-green { background: var(--green); }
-#hud-timefill.b-red { background: var(--bad); }
-#hud-timefill.b-max { animation: barpulse .7s ease-in-out infinite; }
-@keyframes barpulse { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
-#hud-timetext {
-  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  font-size: 14px; color: var(--ink); text-shadow: 0 1px 2px rgba(255,255,255,.7);
-}
-#hud-lives { font-size: 22px; min-width: 90px; text-align: right; color: var(--bad); letter-spacing: 3px; }
+#hud-lives { font-size: 22px; min-width: 150px; text-align: right; color: var(--bad); letter-spacing: 3px; }
 #hud-lives.danger { animation: pulse .5s infinite; color: #ff2020; }
+
+/* 레벨업 배너 — 화면 중앙 강렬하게 */
+#levelup-banner {
+  position: absolute; left: 50%; top: 200px; transform: translateX(-50%);
+  font-size: 52px; font-weight: 900; color: #fff; white-space: nowrap;
+  background: linear-gradient(135deg, var(--accent), var(--good));
+  padding: 12px 48px; border-radius: 18px;
+  box-shadow: 0 8px 40px rgba(123, 104, 238, .55);
+  opacity: 0; pointer-events: none;
+}
+#levelup-banner.gold { background: linear-gradient(135deg, #e8a13c, #ffd166); box-shadow: 0 8px 40px rgba(232, 161, 60, .6); }
+#levelup-banner.anim { animation: lvup 1.5s cubic-bezier(.2, 1.4, .4, 1) forwards; }
+@keyframes lvup {
+  0% { opacity: 0; transform: translateX(-50%) scale(.2) rotate(-4deg); }
+  18% { opacity: 1; transform: translateX(-50%) scale(1.18) rotate(1.5deg); }
+  30% { transform: translateX(-50%) scale(1); }
+  75% { opacity: 1; transform: translateX(-50%) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) scale(1.06) translateY(-24px); }
+}
 
 /* ---- 결과 화면: 3그룹 ---- */
 .result-grid { display: flex; gap: 16px; width: 100%; max-width: 860px; }

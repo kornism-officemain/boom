@@ -12,17 +12,16 @@ export function showScreen(name) {
 // ---- 자세히 보기: 초간단 (GDD §8) ----
 const CATALOG = `
 <div class="howto-row g">파란 것 = 먹기
-  <span class="icons">● ◆ ❄ ◎ ★ ♥</span>
+  <span class="icons">● ◆ ❄ ◎ ★ ✦</span>
 </div>
-<div class="howto-row b">빨간 것 = 피하기
+<div class="howto-row b">빨간 것 = 피하기 (부딪히면 목숨 -1, 3번이면 끝)
   <span class="icons">● ▲ ◉ — ✱</span>
 </div>
 <div class="howto-tips">
   · 쉬지 않고 먹으면 <b>콤보 최대 ×10</b> — 점수의 핵심<br>
-  · <b>자동 사격</b>: 기수 방향으로 발사 — 쏘고 싶으면 적을 향해 날 것<br>
-  · 점수가 오르면 <b>기체 자동 진화 (최대 5단계)</b>: 체력·공격·속도 ↑<br>
-  · 체력 게이지가 다 닳으면 목숨 -1 · <b>♥</b> = 목숨 +1<br>
-  · 아슬하게 스치면 <b>+2</b> · 25개 수집마다 <b>러시</b>(4초 무적+자석)
+  · <b>★ = 점수 ×2 부스터</b> (8초) · <b>✦ = 점수 ×3 부스터</b> (5초, 희귀)<br>
+  · 부스터 중 피격되면 부스터 소멸 — 지켜라<br>
+  · 아슬하게 스치면 <b>+2</b> (부스터 적용) · 25개 수집마다 <b>러시</b>(4초 무적+자석)
 </div>`;
 
 export function initHowto() {
@@ -50,7 +49,7 @@ export function showResult(r, best, myName) {
     : `베스트 ${best}점 — 베스트까지 ${best - r.score}점`;
   $('result-rank').textContent = '';
   $('result-stats').textContent =
-    `생존 ${r.survival}초 · Lv.${r.lv || 1} · 격추 ${r.kills || 0} · 콤보 ×${r.maxCombo} · 니어미스 ${r.nearMiss}`;
+    `생존 ${r.survival}초 · 최대 콤보 ×${r.maxCombo} · 니어미스 ${r.nearMiss}`;
 }
 
 // ---- 리더보드 카드 + 내 순위/다음 순위까지 격차 (집착 장치) ----
