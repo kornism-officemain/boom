@@ -325,6 +325,17 @@ export function runGame(cfg, canvas, hud, onEnd) {
     s.magnet = Math.max(0, s.magnet - dt);
     if (s.boostT > 0) { s.boostT -= dt; if (s.boostT <= 0) endBoost(); }
     if (s.comboTimer > 0) { s.comboTimer -= dt; if (s.comboTimer <= 0) s.combo = 0; }
+    // 풀콤보(×10) 무지개 스파크 — 맥스 상태를 온몸으로 알림
+    if (s.combo >= cfg.combo.max && s.comboTimer > 0) {
+      s.rainbowTimer = (s.rainbowTimer || 0) - dt;
+      if (s.rainbowTimer <= 0) {
+        s.rainbowTimer = 0.06;
+        const a = rand(0, Math.PI * 2);
+        fx.parts.push({ x: s.p.x + Math.cos(a) * (s.p.r + 12), y: s.p.y + Math.sin(a) * (s.p.r + 12),
+                        vx: Math.cos(a) * 70, vy: Math.sin(a) * 70, life: 0.4, max: 0.4,
+                        color: `hsl(${Math.floor(rand(0, 360))}, 100%, 65%)`, r: 2.5 });
+      }
+    }
     s.survivalAcc += dt;
     if (s.survivalAcc >= 1) { s.survivalAcc -= 1; s.score += cfg.survival.perSec * s.boostMult; }
 
@@ -569,25 +580,43 @@ export function runGame(cfg, canvas, hud, onEnd) {
     if (s.rush > 0) circle(s.p.x, s.p.y, s.p.r + 11 + Math.sin(s.t * 12) * 3, C.boost2, 0.3);
     const visible = s.invuln <= 0 || Math.sin(s.t * 25) > 0;
     if (visible) drawShip(s.p);
-    // 콤보 — 올라갈수록 크고 진하게
+    // 콤보 — 올라갈수록 크고 진하게. ×10(맥스)은 무지개 발광.
     if (s.combo > 1 && s.comboTimer > 0) {
+      const isMax = s.combo >= cfg.combo.max;
       const cRatio = s.combo / cfg.combo.max;
-      const col = COMBO_COLORS[s.combo - 1];
-      ctx.strokeStyle = col; ctx.lineWidth = 2.5 + cRatio * 3.5;
-      ctx.globalAlpha = 0.85;
-      ctx.beginPath();
-      ctx.arc(s.p.x, s.p.y, s.p.r + 10, -Math.PI / 2, -Math.PI / 2 + (s.comboTimer / cfg.combo.window) * Math.PI * 2);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
+      const gaugeFrac = (s.comboTimer / cfg.combo.window) * Math.PI * 2;
+      if (isMax) {
+        // 무지개 게이지 링 — 12분할 색상환 회전
+        ctx.lineWidth = 6; ctx.lineCap = 'round';
+        const segs = 12;
+        for (let i = 0; i < segs; i++) {
+          const a0 = -Math.PI / 2 + (gaugeFrac * i) / segs;
+          const a1 = -Math.PI / 2 + (gaugeFrac * (i + 1)) / segs;
+          ctx.strokeStyle = `hsl(${(i * 30 + s.t * 240) % 360}, 100%, 62%)`;
+          ctx.beginPath(); ctx.arc(s.p.x, s.p.y, s.p.r + 10, a0, a1 + 0.02); ctx.stroke();
+        }
+        // 무지개 오라
+        const hue = (s.t * 240) % 360;
+        glowCircle(s.p.x, s.p.y, s.p.r + 16 + Math.sin(s.t * 10) * 2, `hsla(${hue}, 100%, 62%, 0.18)`, 20, 1);
+      } else {
+        const col = COMBO_COLORS[s.combo - 1];
+        ctx.strokeStyle = col; ctx.lineWidth = 2.5 + cRatio * 3.5;
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        ctx.arc(s.p.x, s.p.y, s.p.r + 10, -Math.PI / 2, -Math.PI / 2 + gaugeFrac);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
       const fs = 13 + s.combo * 2.2;
-      const pulse = s.combo >= cfg.combo.max ? 1 + Math.sin(s.t * 12) * 0.08 : 1;
+      const pulse = isMax ? 1 + Math.sin(s.t * 12) * 0.1 : 1;
       ctx.font = `900 ${Math.round(fs * pulse)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.lineWidth = Math.max(3, fs * 0.16); ctx.strokeStyle = 'rgba(10,12,30,0.85)';
       ctx.strokeText(`×${s.combo}`, s.p.x, s.p.y - s.p.r - 18);
-      ctx.fillStyle = col;
-      if (s.combo >= 7) { ctx.shadowColor = col; ctx.shadowBlur = 12; }
-      ctx.fillText(`×${s.combo}`, s.p.x, s.p.y - s.p.r - 18);
+      const textCol = isMax ? `hsl(${(s.t * 240) % 360}, 100%, 65%)` : COMBO_COLORS[s.combo - 1]; // 맥스 = 무지개 순환
+      ctx.fillStyle = textCol;
+      if (s.combo >= 7) { ctx.shadowColor = textCol; ctx.shadowBlur = isMax ? 18 : 12; }
+      ctx.fillText(isMax ? `×${s.combo} MAX!` : `×${s.combo}`, s.p.x, s.p.y - s.p.r - 18);
       ctx.shadowBlur = 0;
     }
     drawFx(fx, ctx);
