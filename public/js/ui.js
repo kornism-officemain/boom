@@ -11,17 +11,18 @@ export function showScreen(name) {
 
 // ---- 자세히 보기: 초간단 (GDD §8) ----
 const CATALOG = `
-<div class="howto-row g">파란 것 = 먹기
+<div class="howto-row g">푸른 것 = 먹이 (플랑크톤·치어·진주)
   <span class="icons">● ◆ ❄ ◎ ★ ✦</span>
 </div>
-<div class="howto-row b">빨간 것 = 피하기 (부딪히면 목숨 -1, 3번이면 끝)
+<div class="howto-row b">붉은 것 = 포식자 (물리면 목숨 -1, 3번이면 끝)
   <span class="icons">● ▲ ◉ — ✱</span>
 </div>
 <div class="howto-tips">
   · 쉬지 않고 먹으면 <b>콤보 최대 ×10</b> — 점수의 핵심<br>
-  · <b>★ = 점수 ×2 부스터</b> (8초) · <b>✦ = 점수 ×3 부스터</b> (5초, 희귀)<br>
-  · 부스터 중 피격되면 부스터 소멸 — 지켜라<br>
-  · 아슬하게 스치면 <b>+2</b> (부스터 적용) · 25개 수집마다 <b>러시</b>(4초 무적+자석)
+  · <b>★ 황금진주 = 점수 ×2</b> (8초) · <b>✦ 무지개진주 = 점수 ×3</b> (5초, 희귀)<br>
+  · 진주 효과 중 물리면 효과 소멸 — 지켜라<br>
+  · 포식자를 아슬하게 스치면 <b>+2</b> · 25마리 먹을 때마다 <b>광란의 포식</b>(4초 무적+흡입)<br>
+  · <b>기뢰복어</b>는 부풀기 전엔 무해 · <b>작살</b>은 경고선을 보고 피할 것
 </div>`;
 
 export function initHowto() {
@@ -52,13 +53,27 @@ export function showResult(r, best, myName) {
     `생존 ${r.survival}초 · 최대 콤보 ×${r.maxCombo} · 니어미스 ${r.nearMiss}`;
 }
 
-// ---- 첫 화면 리더보드 TOP 8 ----
+// ---- 첫 화면 리더보드 TOP 15 — 포디움 + NEW 배지 + 다음 목표 + 오늘 판수 ----
 export async function renderMenuBoard(myName) {
   try {
-    const { list, key } = await getBoard('score');
-    $('menu-board-list').innerHTML = list.slice(0, 8).map((e, i) =>
-      `<li class="${e.name === myName ? 'me' : ''}"><span class="rk">${i + 1}</span><span class="nm">${e.name}</span><span class="sc">${e[key]}</span></li>`
-    ).join('') || '<li class="dim">아직 기록 없음 — 첫 주인공이 되자</li>';
+    const { list, key, meta } = await getBoard('score');
+    const now = Date.now();
+    const rows = list.slice(0, 15).map((e, i) => {
+      const isNew = e.at && now - e.at < 3600e3;                   // 1시간 내 신규 기록
+      const cls = [e.name === myName ? 'me' : '', i < 3 ? `r${i + 1}` : ''].join(' ');
+      const medal = i === 0 ? '👑' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1;
+      return `<li class="${cls}"><span class="rk">${medal}</span><span class="nm">${e.name}</span>${isNew ? '<span class="newb">NEW</span>' : ''}<span class="sc">${e[key]}</span></li>`;
+    }).join('');
+    $('menu-board-list').innerHTML = rows || '<li class="dim">아직 기록 없음 — 첫 주인공이 되자</li>';
+    // 다음 목표 — 나를 기준으로 바로 위 한 명
+    const myIdx = list.findIndex((e) => e.name === myName);
+    let target;
+    if (myIdx === 0) target = '👑 왕좌 방어전! 모두가 너를 노린다';
+    else if (myIdx > 0) target = `🎯 다음 목표: <b>${list[myIdx - 1].name}</b> (-${list[myIdx - 1][key] - list[myIdx][key] + 1}점)`;
+    else if (list.length) target = `🎯 첫 목표: <b>${list[list.length - 1].name}</b> 제치기`;
+    else target = '첫 기록의 주인공이 되자';
+    $('menu-board-target').innerHTML = target;
+    $('menu-board-meta').textContent = meta ? `🔥 오늘 ${meta.runsToday}판 열림 · 총 ${meta.totalRuns}판` : '';
   } catch { $('menu-board-list').innerHTML = '<li class="dim">불러오기 실패</li>'; }
 }
 

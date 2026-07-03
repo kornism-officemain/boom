@@ -8,10 +8,12 @@ const ADMIN_KEY = process.env.ADMIN_KEY || 'tanky-admin';
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data'); // Render 영구디스크 대응
 const SCORES_FILE = path.join(DATA_DIR, 'scores.json');
 const OVERRIDES_FILE = path.join(DATA_DIR, 'config.overrides.json');
-const DEFAULTS = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.defaults.json'), 'utf8'));
+// readJson: 클라우드 동기화(OneDrive 등)가 남기는 후행 NUL/공백 방어
+const readJson = (f) => JSON.parse(fs.readFileSync(f, 'utf8').replace(/[\0\s]+$/, ''));
+const DEFAULTS = readJson(path.join(__dirname, 'config.defaults.json'));
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-const loadJson = (f, fallback) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return fallback; } };
+const loadJson = (f, fallback) => { try { return readJson(f); } catch { return fallback; } };
 const saveJson = (f, obj) => fs.writeFileSync(f, JSON.stringify(obj, null, 2));
 
 let scores = loadJson(SCORES_FILE, []);

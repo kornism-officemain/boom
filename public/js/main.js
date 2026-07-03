@@ -50,6 +50,9 @@ function boot() {
   initHowto();
   $('name-input').value = localStorage.getItem('boom.name') || '';
   renderMenuBoard($('name-input').value.trim()); // 첫 화면 리더보드
+  setInterval(() => { // 라이브 보드 — 메뉴가 떠 있는 동안 15초마다 갱신
+    if (!$('screen-menu').classList.contains('hidden')) renderMenuBoard(getName());
+  }, 15000);
 
   $('btn-start').addEventListener('click', startRun);
   $('name-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') startRun(); });

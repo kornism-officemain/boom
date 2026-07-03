@@ -19,12 +19,12 @@ let overrides = loadJson(OVERRIDES_FILE, {});
 
 // 봇 시딩 — 빈 리더보드는 차갑다. 명백한 봇 이름으로 난이도 사다리 제공 (재시작/리셋 시 자동 복구)
 const SEED_BOTS = [
-  // 봇 사다리 — 난이도 목표
-  { name: '🤖 우주먼지봇', score: 120, survival: 45, maxCombo: 4, nearMiss: 6 },
-  { name: '🤖 소행성지기', score: 260, survival: 80, maxCombo: 6, nearMiss: 12 },
-  { name: '🤖 헌터킬러', score: 450, survival: 115, maxCombo: 8, nearMiss: 20 },
-  { name: '👾 UFO마스터', score: 700, survival: 160, maxCombo: 9, nearMiss: 30 },
-  { name: '👑 은하최강자', score: 1000, survival: 210, maxCombo: 10, nearMiss: 45 },
+  // 봇 사다리 — 난이도 목표 (심해 테마)
+  { name: '🫧 물방울봇', score: 120, survival: 45, maxCombo: 4, nearMiss: 6 },
+  { name: '🐚 산호지기', score: 260, survival: 80, maxCombo: 6, nearMiss: 12 },
+  { name: '🦀 집게사냥꾼', score: 450, survival: 115, maxCombo: 8, nearMiss: 20 },
+  { name: '🐬 심해레이서', score: 700, survival: 160, maxCombo: 9, nearMiss: 30 },
+  { name: '🦈 심해의왕', score: 1000, survival: 210, maxCombo: 10, nearMiss: 45 },
   // 팀원 시드 — 낮은 점수 (첫 판에 바로 추월 가능, 본인 실제 기록 올리면 자동 대체됨)
   { name: '황강수', score: 96, survival: 41, maxCombo: 3, nearMiss: 5 },
   { name: '김철균', score: 73, survival: 35, maxCombo: 3, nearMiss: 4 },
@@ -33,7 +33,7 @@ const SEED_BOTS = [
 ];
 function seedIfEmpty() {
   if (scores.length > 0) return;
-  scores = SEED_BOTS.map((b, i) => ({ ...b, mode: 'CLASSIC', cleared: false, at: Date.now() - (SEED_BOTS.length - i) * 3600e3 }));
+  scores = SEED_BOTS.map((b, i) => ({ ...b, mode: 'CLASSIC', cleared: false, seed: true, at: Date.now() - (SEED_BOTS.length - i) * 86400e3 })); // 하루 간격 과거 — NEW 배지 방지
   saveJson(SCORES_FILE, scores);
   console.log('leaderboard seeded with bots');
 }
@@ -106,7 +106,9 @@ app.get('/api/leaderboard', (req, res) => {
   }
   const topN = mergedConfig().leaderboard.topN;
   const list = [...best.values()].sort((a, b) => b[key] - a[key]).slice(0, topN);
-  res.json({ board: req.query.board || 'score', key, list });
+  const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+  const runsToday = scores.filter((x) => x.at >= dayStart.getTime() && !x.seed).length;
+  res.json({ board: req.query.board || 'score', key, list, meta: { totalRuns: scores.length, runsToday } });
 });
 
 app.listen(PORT, () => {
