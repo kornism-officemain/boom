@@ -3,7 +3,7 @@ import { getConfig, postScore, getBoard } from './net.js';
 import { input } from './input.js';
 import { runGame } from './game.js';
 import { sfx } from './sfx.js';
-import { showScreen, initHowto, showResult, renderBoard, renderMenuBoard } from './ui.js';
+import { showScreen, initHowto, showResult, renderBoard, renderMenuBoard, updateDex, renderDexProgress } from './ui.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('game');
@@ -40,7 +40,8 @@ async function onRunEnd(r) {
   playing = false;
   const name = getName();
   const best = Number(localStorage.getItem(bestKey()) || 0);
-  showResult(r, best, name);
+  const freshDex = updateDex(r.discovered); // 도감 갱신 + 신규 발견
+  showResult(r, best, name, freshDex);
   if (r.score > best) { localStorage.setItem(bestKey(), String(r.score)); sfx.newBest(); }
   postScore({ name, mode, ...r }).then(() => { renderBoard('score', name); renderMenuBoard(name); }).catch(() => {});
 }
@@ -50,6 +51,7 @@ function boot() {
   initHowto();
   $('name-input').value = localStorage.getItem('boom.name') || '';
   renderMenuBoard($('name-input').value.trim()); // 첫 화면 리더보드
+  renderDexProgress(); // 도감 진행도
   setInterval(() => { // 라이브 보드 — 메뉴가 떠 있는 동안 15초마다 갱신
     if (!$('screen-menu').classList.contains('hidden')) renderMenuBoard(getName());
   }, 15000);

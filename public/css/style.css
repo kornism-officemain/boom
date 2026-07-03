@@ -234,6 +234,13 @@ button.retry { animation: breathe 1.6s ease-in-out infinite; margin-top: 4px; }
 #result-best { font-size: 15px; color: var(--ink-dim); }
 #result-rank { font-size: 16px; font-weight: 900; color: var(--gold); text-shadow: 0 0 12px rgba(255,197,66,.4); }
 #result-stats { font-size: 13px; color: var(--ink-dim); }
+#result-discover {
+  font-size: 13px; font-weight: 700; color: var(--green);
+  background: rgba(62,207,142,.12); border-radius: 10px; padding: 4px 12px;
+}
+#result-discover:empty { display: none; }
+#result-discover b { color: #7ff0c8; }
+#dex-progress { color: var(--gold); font-weight: 800; opacity: .9; }
 
 .board-tabs { display: flex; gap: 6px; }
 .tab { font-size: 13px; padding: 6px 14px; }
