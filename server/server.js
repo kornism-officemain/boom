@@ -32,7 +32,10 @@ function mergedConfig() {
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// no-cache: 브라우저가 매번 서버에 변경 확인 (304면 캐시 사용) → 배포 후 구버전 섞임 방지
+app.use(express.static(path.join(__dirname, '..', 'public'), {
+  setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache'),
+}));
 
 const adminOnly = (req, res, next) =>
   req.get('x-admin-key') === ADMIN_KEY ? next() : res.status(403).json({ error: 'bad admin key' });

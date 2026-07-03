@@ -24,7 +24,7 @@ async function startRun() {
   cfg = await getConfig(); // 매 런마다 최신 config — 관리자 밸런싱 즉시 반영
   showScreen('play');
   playing = true;
-  hud.level.textContent = 'Lv.1';
+  if (hud.level) hud.level.textContent = 'Lv.1'; // 구버전 HTML 캐시 방어
   runGame(cfg, canvas, hud, onRunEnd);
 }
 
