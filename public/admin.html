@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>boom — admin</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; background: #f4f1ea; color: #3a3f52; max-width: 760px; margin: 24px auto; padding: 0 16px; }
+  h1 { color: #2b6fb3; }
+  .sec { background: #fffdf8; border-radius: 10px; padding: 12px 16px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .sec h3 { margin: 0 0 8px; font-size: 15px; }
+  .row { display: inline-flex; align-items: center; margin: 3px 12px 3px 0; font-size: 13px; }
+  .row input { width: 72px; margin-left: 6px; padding: 3px 6px; border: 1px solid #ccc; border-radius: 6px; }
+  .row input.changed { border-color: #5aa9e6; background: #eef6fd; font-weight: 700; }
+  button { padding: 10px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; }
+  #save { background: #5aa9e6; color: #fff; font-weight: 700; }
+  #reset-scores { background: #ff6b6b; color: #fff; }
+  #key { padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+  #msg { margin-left: 12px; font-weight: 700; }
+</style>
+</head>
+<body>
+<h1>boom — 관리자 콘솔</h1>
+<p>숫자를 바꾸고 저장하면 <b>다음 판부터</b> 즉시 반영됩니다. 파란 테두리 = 기본값에서 변경됨.</p>
+<p>관리자 키: <input id="key" type="password" placeholder="admin key"> <button id="load">불러오기</button><span id="msg"></span></p>
+<div id="form"></div>
+<p>
+  <button id="save">설정 저장</button>
+  <button id="reset-defaults">기본값으로 초기화</button>
+  <button id="reset-scores">⚠ 랭킹 전체 리셋</button>
+</p>
+<script>
+const $ = (id) => document.getElementById(id);
+let defaults = null;
+
+const headers = () => ({ 'Content-Type': 'application/json', 'x-admin-key': $('key').value });
+const msg = (t, ok = true) => { $('msg').textContent = t; $('msg').style.color = ok ? '#2b6fb3' : '#c0392b'; };
+
+async function load() {
+  const r = await fetch('/api/admin/config', { headers: headers() });
+  if (!r.ok) return msg('키가 틀렸습니다', false);
+  const { defaults: d, overrides } = await r.json();
+  defaults = d;
+  render(overrides);
+  msg('불러옴');
+}
+
+function render(overrides) {
+  $('form').innerHTML = Object.entries(defaults).map(([sec, vals]) => `
+    <div class="sec"><h3>${sec}</h3>${Object.entries(vals)
+      .filter(([, v]) => typeof v === 'number')
+      .map(([k, v]) => {
+        const ov = overrides?.[sec]?.[k];
+        return `<label class="row">${k}
+          <input type="number" step="any" data-sec="${sec}" data-key="${k}" data-def="${v}"
+                 value="${ov ?? v}" class="${ov != null && ov !== v ? 'changed' : ''}"></label>`;
+      }).join('')}</div>`).join('');
+  document.querySelectorAll('#form input').forEach((i) =>
+    i.addEventListener('input', () => i.classList.toggle('changed', Number(i.value) !== Number(i.dataset.def))));
+}
+
+async function save() {
+  const overrides = {};
+  document.querySelectorAll('#form input').forEach((i) => {
+    const v = Number(i.value);
+    if (v !== Number(i.dataset.def)) {
+      (overrides[i.dataset.sec] ??= {})[i.dataset.key] = v;
+    }
+  });
+  const r = await fetch('/api/admin/config', { method: 'POST', headers: headers(), body: JSON.stringify(overrides) });
+  msg(r.ok ? '저장됨 — 다음 판부터 반영' : '저장 실패', r.ok);
+}
+
+$('load').addEventListener('click', load);
+$('save').addEventListener('click', save);
+$('reset-defaults').addEventListener('click', async () => {
+  const r = await fetch('/api/admin/config', { method: 'POST', headers: headers(), body: '{}' });
+  if (r.ok) { render({}); msg('기본값으로 초기화됨'); }
+});
+$('reset-scores').addEventListener('click', async () => {
+  if (!confirm('랭킹을 전부 삭제할까요?')) return;
+  const r = await fetch('/api/admin/reset-scores', { method: 'POST', headers: headers() });
+  msg(r.ok ? '랭킹 리셋 완료' : '실패', r.ok);
+});
+</script>
+</body>
+</html>

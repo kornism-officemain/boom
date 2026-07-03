@@ -1,0 +1,11 @@
+{
+  "name": "boom",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
