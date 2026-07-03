@@ -5,15 +5,15 @@ import { input } from './input.js';
 import { createFx, burst, floatText, shake, flash, ring, updateFx, drawFx } from './fx.js';
 import { sfx } from './sfx.js';
 
-// 색 문법: 푸른 계열 = 이득 / 붉은 계열 = 위협 (GDD §0)
+// 색 문법: 푸른 계열 = 이득 / 붉은 계열 = 위협 (GDD §0). 다크 스페이스용 네온 톤.
 const C = {
-  player: '#4a5578', dome: '#bfe3ff',
-  orb: '#7ec8f7', cobalt: '#2b6fb3', freeze: '#4dd6e8', magnet: '#2ec4b6',
-  boost2: '#7b68ee', boost3: '#e8a13c',
-  drone: '#ff9f5a', hunter: '#d7263d', splitter: '#ff6b6b', bullet: '#ff3b3b', mine: '#8e1e1e',
+  player: '#8a97c9', dome: '#cfeaff',
+  orb: '#5ad1ff', cobalt: '#4f9bff', freeze: '#5fe6f7', magnet: '#3fe0c0',
+  boost2: '#a88bff', boost3: '#ffc542',
+  drone: '#ff9f5a', hunter: '#ff4d6a', splitter: '#ff7b7b', bullet: '#ff4040', mine: '#d9453a',
 };
 // 콤보 강조: 단계별 색 (파랑 → 청록 → 보라 → 골드)
-const COMBO_COLORS = ['#2b6fb3', '#2b6fb3', '#2ec4b6', '#2ec4b6', '#7b68ee', '#7b68ee', '#7b68ee', '#e8a13c', '#e8a13c', '#e8a13c'];
+const COMBO_COLORS = ['#5ad1ff', '#5ad1ff', '#3fe0c0', '#3fe0c0', '#a88bff', '#a88bff', '#a88bff', '#ffc542', '#ffc542', '#ffc542'];
 const UNLOCK_LABEL = {
   cobalt: '코발트 크리스탈', hunter: '헌터', splitter: '스플리터', magnet: '마그넷',
   bullet: '레이저', freeze: '프리즈', boost2: '×2 부스터', mine: '마인', boost3: '×3 부스터',
@@ -38,7 +38,18 @@ export function runGame(cfg, canvas, hud, onEnd) {
     nextMilestone: cfg.survival.milestoneEvery,
     unlockQueue: Object.entries(cfg.schedule).sort((a, b) => a[1] - b[1]),
   };
-  const stars = Array.from({ length: 70 }, () => ({ x: rand(0, W), y: rand(0, H), r: rand(0.6, 1.8), a: rand(0.1, 0.3) }));
+  // 배경: 그라디언트 + 성운 + 반짝이는 별 (다크 스페이스)
+  const stars = Array.from({ length: 90 }, () => ({ x: rand(0, W), y: rand(0, H), r: rand(0.5, 1.9), a: rand(0.15, 0.5), tw: rand(0, Math.PI * 2) }));
+  const bgGrad = ctx.createLinearGradient ? (() => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#131634'); g.addColorStop(0.6, '#171a3e'); g.addColorStop(1, '#241b52');
+    return g;
+  })() : '#10122b';
+  const NEBULAS = [
+    { x: W * 0.22, y: H * 0.28, r: 270, c: 'rgba(123,104,238,0.10)' },
+    { x: W * 0.78, y: H * 0.68, r: 310, c: 'rgba(77,169,255,0.08)' },
+    { x: W * 0.55, y: H * 0.12, r: 210, c: 'rgba(255,120,170,0.05)' },
+  ];
 
   const speedCoef = () => Math.min(1 + s.t / cfg.difficulty.speedDiv, cfg.difficulty.speedMax);
   const spawnCoef = () => Math.min(1 + s.t / cfg.difficulty.spawnDiv, cfg.difficulty.spawnMax);
@@ -246,8 +257,16 @@ export function runGame(cfg, canvas, hud, onEnd) {
     }
     const dx = nx - p.x, dy = ny - p.y, dist = Math.hypot(dx, dy), maxD = cfg.player.maxSpeed * dt;
     if (dist > maxD && dist > 0) { nx = p.x + (dx / dist) * maxD; ny = p.y + (dy / dist) * maxD; } // dist=0 → 0/0 NaN 방지
+    s.moving = dist > 1.5;
     p.x = Math.max(p.r, Math.min(W - p.r, nx));
     p.y = Math.max(p.r, Math.min(H - p.r, ny));
+    // 이동 트레일 — 속도감 연출
+    s.trailTimer = (s.trailTimer || 0) - dt;
+    if (s.moving && s.trailTimer <= 0) {
+      s.trailTimer = 0.05;
+      fx.parts.push({ x: p.x, y: p.y + p.r * 0.4, vx: 0, vy: 26, life: 0.35, max: 0.35,
+                      color: s.boostMult > 1 ? s.boostColor : 'rgba(122,196,255,0.9)', r: 3 });
+    }
   }
 
   // ---- 피격: 충돌 = 목숨 -1. 3번이면 끝. ----
@@ -354,6 +373,19 @@ export function runGame(cfg, canvas, hud, onEnd) {
     ctx.globalAlpha = alpha; ctx.fillStyle = color;
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
   }
+  function glowCircle(x, y, r, color, blur, alpha = 1) { // 네온 글로우 (남용 금지 — 성능)
+    ctx.save(); ctx.shadowColor = color; ctx.shadowBlur = blur;
+    circle(x, y, r, color, alpha);
+    ctx.restore();
+  }
+  function orbSphere(x, y, r, base, alpha) { // 광택 구체
+    const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.15, x, y, r);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, base); g.addColorStop(1, 'rgba(20,40,90,0.9)');
+    ctx.save(); ctx.shadowColor = base; ctx.shadowBlur = 12;
+    ctx.globalAlpha = alpha; ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
   function drawShip(p) {
     const r = p.r;
     // 부스터 오라 — 확실하게 느껴지게
@@ -369,97 +401,165 @@ export function runGame(cfg, canvas, hud, onEnd) {
       ctx.fillText(`×${s.boostMult}`, p.x, p.y + r + 22);
       ctx.globalAlpha = 1;
     }
-    // 원형 UFO
-    circle(p.x, p.y + r * 0.4, r * 1.3, C.orb, 0.12);
-    ctx.fillStyle = C.dome;
-    ctx.beginPath(); ctx.arc(p.x, p.y - r * 0.25, r * 0.72, Math.PI, 0); ctx.fill();
-    ctx.fillStyle = C.player;
-    ctx.beginPath(); ctx.ellipse(p.x, p.y + r * 0.15, r * 1.45, r * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+    // 원형 UFO — 광택 돔 + 메탈 새서 + 엔진 글로우 + 호버링 바운스
+    const by = Math.sin(s.t * 3) * 1.5;               // 둥실거림 (연출 전용)
+    const px = p.x, py = p.y + by;
+    // 엔진 언더글로우
+    glowCircle(px, py + r * 0.55, r * 0.9, 'rgba(90,209,255,0.35)', 18, 0.5);
+    // 새서 (메탈 그라디언트 + 림 라이트)
+    const sg = ctx.createLinearGradient(px, py - r * 0.4, px, py + r * 0.7);
+    sg.addColorStop(0, '#d7ddf7'); sg.addColorStop(0.5, C.player); sg.addColorStop(1, '#4d5680');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.ellipse(px, py + r * 0.15, r * 1.45, r * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(210,230,255,0.65)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.ellipse(px, py + r * 0.15, r * 1.45, r * 0.55, 0, 0, Math.PI * 2); ctx.stroke();
+    // 돔 (유리 광택)
+    const dg = ctx.createRadialGradient(px - r * 0.25, py - r * 0.55, r * 0.1, px, py - r * 0.25, r * 0.8);
+    dg.addColorStop(0, '#ffffff'); dg.addColorStop(0.4, C.dome); dg.addColorStop(1, 'rgba(110,160,230,0.9)');
+    ctx.fillStyle = dg;
+    ctx.beginPath(); ctx.arc(px, py - r * 0.25, r * 0.72, Math.PI, 0); ctx.fill();
+    circle(px - r * 0.28, py - r * 0.5, r * 0.13, 'rgba(255,255,255,0.95)'); // 스펙큘러
+    // 라이트 3개 순차 점멸
     for (let i = 0; i < 3; i++) {
       const k = (i / 2) * 2 - 1;
       const on = Math.sin(s.t * 6 + i * 1.7) > 0;
-      circle(p.x + k * r * 1.0, p.y + r * 0.15, r * 0.15, on ? '#ffe28a' : '#8a93b8');
+      if (on) glowCircle(px + k * r * 1.0, py + r * 0.15, r * 0.16, '#ffe28a', 8);
+      else circle(px + k * r * 1.0, py + r * 0.15, r * 0.15, '#5d6690');
     }
   }
   function drawGood(g) {
     const blink = g.life != null && g.life < 1.2 ? (Math.sin(s.t * 20) > 0 ? 0.35 : 1) : 1;
-    ctx.globalAlpha = blink;
-    if (g.type === 'orb') {
-      circle(g.x, g.y, g.r, C.orb, blink);
-      circle(g.x - g.r * 0.3, g.y - g.r * 0.3, g.r * 0.3, '#ffffff', blink * 0.8);
-    } else if (g.type === 'cobalt') {
-      ctx.fillStyle = C.cobalt;
+    if (g.type === 'orb') { // 에너지 구슬 — 광택 구체 + 글로우
+      orbSphere(g.x, g.y, g.r, C.orb, blink);
+    } else if (g.type === 'cobalt') { // 크리스탈 젬 — 그라디언트 패싯 + 스파클
       ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(Math.PI / 4);
+      ctx.shadowColor = C.cobalt; ctx.shadowBlur = 12; ctx.globalAlpha = blink;
+      const cg = ctx.createLinearGradient(-g.r, -g.r, g.r, g.r);
+      cg.addColorStop(0, '#bfe0ff'); cg.addColorStop(0.5, C.cobalt); cg.addColorStop(1, '#1c4fa0');
+      ctx.fillStyle = cg;
       ctx.fillRect(-g.r * 0.8, -g.r * 0.8, g.r * 1.6, g.r * 1.6);
-      ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(-g.r * 0.8, 0); ctx.lineTo(g.r * 0.8, 0); ctx.stroke();
-      ctx.restore();
-    } else {
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(-g.r * 0.8, 0); ctx.lineTo(g.r * 0.8, 0);
+      ctx.moveTo(0, -g.r * 0.8); ctx.lineTo(0, g.r * 0.8); ctx.stroke();
+      ctx.restore(); ctx.globalAlpha = 1;
+      const sp = (s.t * 2 + g.x) % 1; // 흐르는 스파클
+      if (sp < 0.5) circle(g.x + g.r * 0.5, g.y - g.r * 0.6, 1.6, '#ffffff', blink * (1 - sp * 2));
+    } else { // 스페셜 배지 — 컬러 그라디언트 원판 + 흰 글리프 + 글로우
       const GLYPH = { freeze: '❄', magnet: '◎', boost2: '★', boost3: '✦' };
-      circle(g.x, g.y, g.r + 3, '#ffffff', blink);
+      const col = C[g.type];
+      ctx.save(); ctx.shadowColor = col; ctx.shadowBlur = 14; ctx.globalAlpha = blink;
+      const bg2 = ctx.createRadialGradient(g.x - g.r * 0.3, g.y - g.r * 0.4, g.r * 0.2, g.x, g.y, g.r + 3);
+      bg2.addColorStop(0, '#ffffff'); bg2.addColorStop(0.35, col); bg2.addColorStop(1, col);
+      ctx.fillStyle = bg2;
+      ctx.beginPath(); ctx.arc(g.x, g.y, g.r + 3, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
       ctx.globalAlpha = blink;
-      ctx.strokeStyle = C[g.type]; ctx.lineWidth = 2.5;
+      ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(g.x, g.y, g.r + 3, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillStyle = C[g.type];
+      ctx.fillStyle = '#ffffff';
       ctx.font = `bold ${g.r * 1.7}px sans-serif`; ctx.textAlign = 'center';
       ctx.fillText(GLYPH[g.type], g.x, g.y + g.r * 0.62);
-      if (g.type === 'boost3') { // ✦는 눈에 띄게 반짝
-        ctx.strokeStyle = C.boost3; ctx.globalAlpha = blink * (0.3 + Math.sin(s.t * 9) * 0.25);
-        ctx.beginPath(); ctx.arc(g.x, g.y, g.r + 7, 0, Math.PI * 2); ctx.stroke();
+      if (g.type === 'boost3') { // ✦ 골드는 회전 링으로 존재감
+        ctx.strokeStyle = C.boost3; ctx.globalAlpha = blink * (0.4 + Math.sin(s.t * 9) * 0.3);
+        ctx.setLineDash([6, 6]); ctx.lineDashOffset = -s.t * 30;
+        ctx.beginPath(); ctx.arc(g.x, g.y, g.r + 9, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
       }
+      ctx.globalAlpha = 1;
     }
-    ctx.globalAlpha = 1;
   }
   function drawThreat(th) {
-    if (th.type === 'drone') {
-      circle(th.x, th.y, th.r, C.drone);
+    if (th.type === 'drone') { // 소행성 — 셰이딩 + 크레이터 + 아웃라인
+      const ag = ctx.createRadialGradient(th.x - th.r * 0.4, th.y - th.r * 0.4, th.r * 0.2, th.x, th.y, th.r);
+      ag.addColorStop(0, '#ffc48a'); ag.addColorStop(0.55, C.drone); ag.addColorStop(1, '#b3541e');
+      ctx.fillStyle = ag;
+      ctx.beginPath(); ctx.arc(th.x, th.y, th.r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(60,20,5,.5)'; ctx.lineWidth = 1.5; ctx.stroke();
       const a1 = th.spin, a2 = th.spin + 2.4;
-      circle(th.x + Math.cos(a1) * th.r * 0.4, th.y + Math.sin(a1) * th.r * 0.4, th.r * 0.28, 'rgba(120,50,20,.35)');
-      circle(th.x + Math.cos(a2) * th.r * 0.5, th.y + Math.sin(a2) * th.r * 0.5, th.r * 0.2, 'rgba(120,50,20,.3)');
-    } else if (th.type === 'hunter') {
+      circle(th.x + Math.cos(a1) * th.r * 0.4, th.y + Math.sin(a1) * th.r * 0.4, th.r * 0.26, 'rgba(120,50,20,.45)');
+      circle(th.x + Math.cos(a2) * th.r * 0.5, th.y + Math.sin(a2) * th.r * 0.5, th.r * 0.18, 'rgba(120,50,20,.4)');
+    } else if (th.type === 'hunter') { // 추적선 — 글로우 + 스러스터 트레일 + 눈
       const ang = Math.atan2(s.p.y - th.y, s.p.x - th.x);
       ctx.save(); ctx.translate(th.x, th.y); ctx.rotate(ang + Math.PI / 2);
-      ctx.fillStyle = C.hunter;
+      ctx.globalAlpha = 0.5; // 스러스터 불꽃
+      ctx.fillStyle = '#ff9e40';
+      const fl = 6 + Math.sin(s.t * 25) * 3;
+      ctx.beginPath(); ctx.moveTo(-4, 9); ctx.lineTo(0, 9 + fl); ctx.lineTo(4, 9); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.shadowColor = C.hunter; ctx.shadowBlur = 12;
+      const hg = ctx.createLinearGradient(0, -13, 0, 9);
+      hg.addColorStop(0, '#ff8098'); hg.addColorStop(1, '#c21833');
+      ctx.fillStyle = hg;
       ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(-9, 9); ctx.lineTo(0, 5); ctx.lineTo(9, 9); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#ffb3bd'; ctx.beginPath(); ctx.arc(0, -3, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      circle(0, -3, 3.4, '#ffffff'); circle(0, -3, 1.8, '#ff2038'); // 눈
       ctx.restore();
-    } else if (th.type === 'splitter') {
-      circle(th.x - 2.5, th.y, th.r * 0.85, C.splitter);
-      circle(th.x + 2.5, th.y, th.r * 0.85, C.splitter);
-      ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1.5;
+    } else if (th.type === 'splitter') { // 분열 셀 — 맥동하는 이중 막
+      const pul = 1 + Math.sin(s.t * 7 + th.x) * 0.08;
+      ctx.save(); ctx.shadowColor = C.splitter; ctx.shadowBlur = 8;
+      const lg = ctx.createRadialGradient(th.x, th.y - 3, 1, th.x, th.y, th.r * 1.1);
+      lg.addColorStop(0, '#ffb3b3'); lg.addColorStop(1, '#d63a3a');
+      ctx.fillStyle = lg;
+      ctx.beginPath(); ctx.arc(th.x - 2.5 * pul, th.y, th.r * 0.85 * pul, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(th.x + 2.5 * pul, th.y, th.r * 0.85 * pul, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.6;
       ctx.beginPath(); ctx.moveTo(th.x, th.y - th.r * 0.8); ctx.lineTo(th.x, th.y + th.r * 0.8); ctx.stroke();
     } else if (th.type === 'bullet') {
-      if (th.warn > 0) {
-        ctx.globalAlpha = 0.15 + 0.5 * (1 - th.warn / cfg.bullet.telegraph);
-        ctx.strokeStyle = C.bullet; ctx.lineWidth = 2;
+      if (th.warn > 0) { // 경고선 — 대시 + 글로우, 임박할수록 진해짐
+        const prog = 1 - th.warn / cfg.bullet.telegraph;
+        ctx.save();
+        ctx.globalAlpha = 0.2 + 0.55 * prog;
+        ctx.shadowColor = C.bullet; ctx.shadowBlur = 6;
+        ctx.strokeStyle = C.bullet; ctx.lineWidth = 1.5 + prog * 1.5;
+        ctx.setLineDash([10, 8]); ctx.lineDashOffset = -s.t * 60;
         ctx.beginPath(); ctx.moveTo(th.x, th.y);
         ctx.lineTo(th.x + th.dx * 2000, th.y + th.dy * 2000); ctx.stroke();
-        ctx.globalAlpha = 1;
-      } else {
-        ctx.strokeStyle = C.bullet; ctx.lineWidth = 5; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(th.x - th.dx * 14, th.y - th.dy * 14);
-        ctx.lineTo(th.x, th.y); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+        glowCircle(th.x, th.y, 4 + prog * 3, C.bullet, 10, 0.7); // 발사 지점 표시
+      } else { // 레이저 — 흰 코어 + 붉은 글로우
+        ctx.save(); ctx.shadowColor = C.bullet; ctx.shadowBlur = 14; ctx.lineCap = 'round';
+        ctx.strokeStyle = C.bullet; ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(th.x - th.dx * 16, th.y - th.dy * 16); ctx.lineTo(th.x, th.y); ctx.stroke();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.6;
+        ctx.beginPath(); ctx.moveTo(th.x - th.dx * 14, th.y - th.dy * 14); ctx.lineTo(th.x, th.y); ctx.stroke();
+        ctx.restore();
       }
-    } else if (th.type === 'mine') {
+    } else if (th.type === 'mine') { // 기뢰 — 스파이크 몸체 + 붉은 코어 점멸
       const a = th.harmless ? 0.15 + 0.45 * (th.age / cfg.mine.fadeIn)
               : th.life < 1.5 ? (Math.sin(s.t * 18) > 0 ? 0.4 : 1) : 1;
-      ctx.globalAlpha = a; ctx.strokeStyle = C.mine; ctx.lineWidth = 3; ctx.lineCap = 'round';
-      for (let i = 0; i < 3; i++) {
+      ctx.globalAlpha = a;
+      for (let i = 0; i < 6; i++) { // 스파이크
         const ang = (i * Math.PI) / 3 + s.t * 0.8;
+        ctx.strokeStyle = C.mine; ctx.lineWidth = 3; ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.moveTo(th.x - Math.cos(ang) * th.r, th.y - Math.sin(ang) * th.r);
-        ctx.lineTo(th.x + Math.cos(ang) * th.r, th.y + Math.sin(ang) * th.r);
+        ctx.moveTo(th.x + Math.cos(ang) * th.r * 0.5, th.y + Math.sin(ang) * th.r * 0.5);
+        ctx.lineTo(th.x + Math.cos(ang) * th.r * 1.15, th.y + Math.sin(ang) * th.r * 1.15);
         ctx.stroke();
       }
-      if (!th.harmless && Math.sin(s.t * 10) > 0) circle(th.x, th.y, 3, '#ff3b3b', a);
+      const mg = ctx.createRadialGradient(th.x - 2, th.y - 3, 1, th.x, th.y, th.r * 0.75);
+      mg.addColorStop(0, '#ff8a7a'); mg.addColorStop(1, '#8e1e1e');
+      ctx.fillStyle = mg;
+      ctx.beginPath(); ctx.arc(th.x, th.y, th.r * 0.75, 0, Math.PI * 2); ctx.fill();
+      if (!th.harmless && Math.sin(s.t * 10) > 0) glowCircle(th.x, th.y, 3.2, '#ff2020', 10, a);
       ctx.globalAlpha = 1;
     }
   }
   function draw() {
-    ctx.clearRect(0, 0, W, H);
+    // 우주 배경 — 그라디언트 + 성운 + 반짝이는 별
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+    for (const nb of NEBULAS) {
+      const ng = ctx.createRadialGradient(nb.x, nb.y, 10, nb.x, nb.y, nb.r);
+      ng.addColorStop(0, nb.c); ng.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = ng;
+      ctx.fillRect(nb.x - nb.r, nb.y - nb.r, nb.r * 2, nb.r * 2);
+    }
     ctx.save();
     if (fx.shake > 0) ctx.translate(rand(-fx.shake, fx.shake), rand(-fx.shake, fx.shake));
-    for (const st of stars) circle(st.x, st.y, st.r, '#3a3f52', st.a);
+    for (const st of stars) circle(st.x, st.y, st.r, '#cfd8ff', st.a * (0.55 + 0.45 * Math.sin(s.t * 2 + st.tw)));
     for (const g of s.goods) drawGood(g);
     for (const th of s.threats) drawThreat(th);
     if (s.magnet > 0 || s.rush > 0) {
@@ -481,9 +581,11 @@ export function runGame(cfg, canvas, hud, onEnd) {
       ctx.globalAlpha = 1;
       const fs = 13 + s.combo * 2.2;
       const pulse = s.combo >= cfg.combo.max ? 1 + Math.sin(s.t * 12) * 0.08 : 1;
-      ctx.fillStyle = col;
       ctx.font = `900 ${Math.round(fs * pulse)}px sans-serif`;
       ctx.textAlign = 'center';
+      ctx.lineWidth = Math.max(3, fs * 0.16); ctx.strokeStyle = 'rgba(10,12,30,0.85)';
+      ctx.strokeText(`×${s.combo}`, s.p.x, s.p.y - s.p.r - 18);
+      ctx.fillStyle = col;
       if (s.combo >= 7) { ctx.shadowColor = col; ctx.shadowBlur = 12; }
       ctx.fillText(`×${s.combo}`, s.p.x, s.p.y - s.p.r - 18);
       ctx.shadowBlur = 0;

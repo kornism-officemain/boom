@@ -45,8 +45,11 @@ export function drawFx(fx, ctx) {
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (p.life / p.max), 0, Math.PI * 2); ctx.fill();
   }
   for (const f of fx.floats) {
-    ctx.globalAlpha = Math.min(1, (f.life / f.max) * 1.5); ctx.fillStyle = f.color;
-    ctx.font = `bold ${f.size}px sans-serif`; ctx.textAlign = 'center';
+    ctx.globalAlpha = Math.min(1, (f.life / f.max) * 1.5);
+    ctx.font = `900 ${f.size}px sans-serif`; ctx.textAlign = 'center';
+    ctx.lineWidth = Math.max(3, f.size * 0.18); ctx.strokeStyle = 'rgba(10,12,30,0.85)'; // 다크 아웃라인 — 가독성
+    ctx.strokeText(f.text, f.x, f.y);
+    ctx.fillStyle = f.color;
     ctx.fillText(f.text, f.x, f.y);
   }
   ctx.globalAlpha = 1;
