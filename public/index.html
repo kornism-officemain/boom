@@ -24,15 +24,23 @@
     <div id="levelup-banner" class="hidden"></div>
   </div>
 
-  <!-- 첫 화면 -->
+  <!-- 첫 화면: 좌측 시작 / 우측 리더보드 -->
   <div id="screen-menu" class="screen">
-    <h1>boom</h1>
-    <p class="tagline"><span class="good">파란 건 먹고</span>, <span class="bad">빨간 건 피한다</span>. 그게 전부다.</p>
-    <p class="tagline sub">목숨 3개. 얼마나 오래, 얼마나 많이 먹고 버티는가.</p>
-    <input id="name-input" maxlength="12" placeholder="이름 입력" autocomplete="off">
-    <button id="btn-start" class="primary">START</button>
-    <button id="btn-howto">자세히 보기 <span id="howto-badge" class="badge">!</span></button>
-    <p class="hint">마우스 따라가기 또는 방향키/WASD · M: 사운드</p>
+    <div class="menu-row">
+      <div class="menu-main">
+        <h1>boom</h1>
+        <p class="tagline"><span class="good">파란 건 먹고</span>, <span class="bad">빨간 건 피한다</span>. 그게 전부다.</p>
+        <p class="tagline sub">목숨 3개. 얼마나 오래, 얼마나 많이 먹고 버티는가.</p>
+        <input id="name-input" maxlength="12" placeholder="이름 입력" autocomplete="off">
+        <button id="btn-start" class="primary">START</button>
+        <button id="btn-howto">자세히 보기 <span id="howto-badge" class="badge">!</span></button>
+        <p class="hint">마우스 따라가기 또는 방향키/WASD · M: 사운드</p>
+      </div>
+      <div class="menu-board">
+        <div class="card-label">🏆 리더보드 TOP 8</div>
+        <ol id="menu-board-list"><li class="dim">불러오는 중…</li></ol>
+      </div>
+    </div>
   </div>
 
   <!-- 자세히 보기 모달 (초간단) -->

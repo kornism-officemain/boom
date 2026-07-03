@@ -52,6 +52,16 @@ export function showResult(r, best, myName) {
     `생존 ${r.survival}초 · 최대 콤보 ×${r.maxCombo} · 니어미스 ${r.nearMiss}`;
 }
 
+// ---- 첫 화면 리더보드 TOP 8 ----
+export async function renderMenuBoard(myName) {
+  try {
+    const { list, key } = await getBoard('score');
+    $('menu-board-list').innerHTML = list.slice(0, 8).map((e, i) =>
+      `<li class="${e.name === myName ? 'me' : ''}"><span class="rk">${i + 1}</span><span class="nm">${e.name}</span><span class="sc">${e[key]}</span></li>`
+    ).join('') || '<li class="dim">아직 기록 없음 — 첫 주인공이 되자</li>';
+  } catch { $('menu-board-list').innerHTML = '<li class="dim">불러오기 실패</li>'; }
+}
+
 // ---- 리더보드 카드 + 내 순위/다음 순위까지 격차 (집착 장치) ----
 export async function renderBoard(board, myName) {
   document.querySelectorAll('.board-tabs .tab').forEach((b) =>

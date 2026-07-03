@@ -20,10 +20,13 @@ const UNLOCK_LABEL = {
 };
 const GOOD_TYPES = new Set(['cobalt', 'freeze', 'magnet', 'boost2', 'boost3']);
 
-export function runGame(cfg, canvas, hud, onEnd) {
+export function runGame(cfg, canvas, hud, onEnd, meta = {}) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;   // 화면 = 월드. 보이는 게 전부.
   const rand = (a, b) => a + Math.random() * (b - a);
+  // 인런 집착 장치: 동료 기록 추월 알림 + 개인 베스트 돌파
+  const rivals = (meta.rivals || []).filter((r) => r.name !== meta.myName && r.score > 0)
+    .sort((a, b) => a.score - b.score);
 
   const s = {
     t: 0, lives: cfg.run.lives, invuln: 0,
@@ -37,9 +40,16 @@ export function runGame(cfg, canvas, hud, onEnd) {
     orbTimer: 0, threatTimer: 0,
     nextMilestone: cfg.survival.milestoneEvery,
     unlockQueue: Object.entries(cfg.schedule).sort((a, b) => a[1] - b[1]),
+    rivalIdx: 0, bestNotified: false,
   };
-  // 배경: 그라디언트 + 성운 + 반짝이는 별 (다크 스페이스)
-  const stars = Array.from({ length: 90 }, () => ({ x: rand(0, W), y: rand(0, H), r: rand(0.5, 1.9), a: rand(0.15, 0.5), tw: rand(0, Math.PI * 2) }));
+  // 배경: 그라디언트 + 성운 + 드리프트하는 별 (다크 스페이스)
+  const stars = Array.from({ length: 90 }, () => ({ x: rand(0, W), y: rand(0, H), r: rand(0.5, 1.9), a: rand(0.15, 0.5), tw: rand(0, Math.PI * 2), spd: rand(2, 9) }));
+  const vign = (() => { // 비네트 — 화면 깊이감
+    if (!ctx.createRadialGradient) return null;
+    const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, H * 1.0);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(4,6,20,0.5)');
+    return g;
+  })();
   const bgGrad = ctx.createLinearGradient ? (() => {
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, '#131634'); g.addColorStop(0.6, '#171a3e'); g.addColorStop(1, '#241b52');
@@ -351,6 +361,22 @@ export function runGame(cfg, canvas, hud, onEnd) {
       const [name] = s.unlockQueue.shift();
       floatText(fx, W / 2, 60, `NEW: ${UNLOCK_LABEL[name] || name}`, GOOD_TYPES.has(name) ? C.cobalt : C.hunter, 20);
     }
+    // 🏆 동료 추월 알림 — 리더보드 집착의 핵심
+    while (s.rivalIdx < rivals.length && s.score > rivals[s.rivalIdx].score) {
+      const r = rivals[s.rivalIdx++];
+      const rank = rivals.length - s.rivalIdx + 1;
+      floatText(fx, W / 2, 130, `👑 ${r.name} 추월! 현재 ${rank}위`, C.boost3, 22);
+      ring(fx, s.p.x, s.p.y, C.boost3, 70, 240);
+      sfx.milestone();
+    }
+    // 개인 베스트 돌파 — 그 순간을 인런에서 터뜨림
+    if (!s.bestNotified && meta.best > 0 && s.score > meta.best) {
+      s.bestNotified = true;
+      floatText(fx, W / 2, 170, '🚀 PERSONAL BEST 돌파!', `hsl(${(s.t * 240) % 360},100%,65%)`, 26);
+      flash(fx, 'rgba(255,197,66,0.2)');
+      ring(fx, s.p.x, s.p.y, C.boost3, 160, 360);
+      sfx.newBest();
+    }
 
     movePlayer(dt);
     spawnGood(dt); spawnThreat(dt);
@@ -415,6 +441,9 @@ export function runGame(cfg, canvas, hud, onEnd) {
     // 원형 UFO — 광택 돔 + 메탈 새서 + 엔진 글로우 + 호버링 바운스
     const by = Math.sin(s.t * 3) * 1.5;               // 둥실거림 (연출 전용)
     const px = p.x, py = p.y + by;
+    // 드롭 섀도 (깊이감) — 둥실거림에 따라 크기 변화
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(px, p.y + r * 1.5, r * (1.15 - by * 0.06), r * 0.28, 0, 0, Math.PI * 2); ctx.fill();
     // 엔진 언더글로우
     glowCircle(px, py + r * 0.55, r * 0.9, 'rgba(90,209,255,0.35)', 18, 0.5);
     // 새서 (메탈 그라디언트 + 림 라이트)
@@ -570,7 +599,7 @@ export function runGame(cfg, canvas, hud, onEnd) {
     }
     ctx.save();
     if (fx.shake > 0) ctx.translate(rand(-fx.shake, fx.shake), rand(-fx.shake, fx.shake));
-    for (const st of stars) circle(st.x, st.y, st.r, '#cfd8ff', st.a * (0.55 + 0.45 * Math.sin(s.t * 2 + st.tw)));
+    for (const st of stars) circle((st.x + s.t * st.spd) % W, st.y, st.r, '#cfd8ff', st.a * (0.55 + 0.45 * Math.sin(s.t * 2 + st.tw)));
     for (const g of s.goods) drawGood(g);
     for (const th of s.threats) drawThreat(th);
     if (s.magnet > 0 || s.rush > 0) {
@@ -621,6 +650,7 @@ export function runGame(cfg, canvas, hud, onEnd) {
     }
     drawFx(fx, ctx);
     ctx.restore();
+    if (vign) { ctx.fillStyle = vign; ctx.fillRect(0, 0, W, H); } // 비네트
     // 부스터 중 — 화면 테두리 글로우 (확실한 상태 인지)
     if (s.boostMult > 1) {
       const blink = s.boostT < 2 ? (Math.sin(s.t * 14) > 0 ? 1 : 0.35) : 1;

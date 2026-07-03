@@ -50,6 +50,26 @@ h1 {
 .bad { color: var(--bad-deep); font-weight: 800; }
 .hint { font-size: 12px; color: var(--ink-dim); }
 
+/* 첫 화면 2단 레이아웃 */
+.menu-row { display: flex; align-items: center; gap: 36px; }
+.menu-main { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+.menu-board {
+  width: 264px; padding: 16px 18px; border-radius: 18px; text-align: left;
+  background: linear-gradient(180deg, #2b2f5e, var(--card));
+  box-shadow: 0 12px 32px rgba(0,0,0,.5), inset 0 3px 0 var(--gold);
+}
+.menu-board .card-label { font-size: 12px; font-weight: 900; letter-spacing: 2px; color: var(--gold); margin-bottom: 8px; }
+#menu-board-list { margin: 0; padding-left: 8px; list-style: none; font-size: 14px; }
+#menu-board-list li { padding: 4px 6px; display: flex; gap: 8px; border-radius: 8px; }
+#menu-board-list li .rk { font-weight: 900; color: var(--ink-dim); width: 18px; text-align: right; }
+#menu-board-list li:nth-child(1) .rk { color: var(--gold); }
+#menu-board-list li:nth-child(2) .rk { color: #cfd8ff; }
+#menu-board-list li:nth-child(3) .rk { color: #d99a5b; }
+#menu-board-list li.me { background: linear-gradient(90deg, rgba(77,169,255,.35), transparent); font-weight: 900; }
+#menu-board-list li.dim { color: var(--ink-dim); }
+#menu-board-list li .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#menu-board-list li .sc { font-weight: 800; color: var(--good-deep); }
+
 input#name-input {
   font-size: 20px; font-weight: 700; padding: 12px 16px; text-align: center; width: 240px;
   color: var(--ink); background: rgba(255,255,255,.08);

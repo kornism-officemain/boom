@@ -1,9 +1,9 @@
 // 부트 + 씬 상태머신: menu → play → result → (한 판 더) play
-import { getConfig, postScore } from './net.js';
+import { getConfig, postScore, getBoard } from './net.js';
 import { input } from './input.js';
 import { runGame } from './game.js';
 import { sfx } from './sfx.js';
-import { showScreen, initHowto, showResult, renderBoard } from './ui.js';
+import { showScreen, initHowto, showResult, renderBoard, renderMenuBoard } from './ui.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('game');
@@ -21,12 +21,19 @@ async function startRun() {
   if (!name) { $('name-input').focus(); return; }
   localStorage.setItem('boom.name', name);
   sfx.unlock(); // 유저 제스처에서 AudioContext 활성화
-  cfg = await getConfig(); // 매 런마다 최신 config — 관리자 밸런싱 즉시 반영
+  let rivals = [];
+  [cfg, rivals] = await Promise.all([
+    getConfig(), // 매 런마다 최신 config — 관리자 밸런싱 즉시 반영
+    getBoard('score').then((b) => b.list).catch(() => []),
+  ]);
   showScreen('play');
   playing = true;
   if (hud.boost) hud.boost.className = 'hidden'; // 런 시작 시 부스터 배지 리셋
   if (hud.banner) hud.banner.classList.add('hidden');
-  runGame(cfg, canvas, hud, onRunEnd);
+  runGame(cfg, canvas, hud, onRunEnd, {
+    best: Number(localStorage.getItem(bestKey()) || 0),
+    rivals, myName: name,
+  });
 }
 
 async function onRunEnd(r) {
@@ -35,13 +42,14 @@ async function onRunEnd(r) {
   const best = Number(localStorage.getItem(bestKey()) || 0);
   showResult(r, best, name);
   if (r.score > best) { localStorage.setItem(bestKey(), String(r.score)); sfx.newBest(); }
-  postScore({ name, mode, ...r }).then(() => renderBoard('score', name)).catch(() => {});
+  postScore({ name, mode, ...r }).then(() => { renderBoard('score', name); renderMenuBoard(name); }).catch(() => {});
 }
 
 function boot() {
   input.init(canvas);
   initHowto();
   $('name-input').value = localStorage.getItem('boom.name') || '';
+  renderMenuBoard($('name-input').value.trim()); // 첫 화면 리더보드
 
   $('btn-start').addEventListener('click', startRun);
   $('name-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') startRun(); });
