@@ -10,54 +10,64 @@
 <div id="stage">
   <canvas id="game" width="960" height="600"></canvas>
 
-  <!-- HUD (플레이 중) -->
+  <!-- HUD (플레이 중): 점수 / 위험도 게이지+스톱워치 / 라이프 -->
   <div id="hud" class="hidden">
-    <div id="hud-score">0</div>
-    <div id="hud-time">90</div>
+    <div id="hud-left">
+      <div id="hud-score">0</div>
+      <span id="hud-level">Lv.1</span>
+    </div>
+    <div id="hud-timebar">
+      <div id="hud-timefill" class="b-blue"></div>
+      <span id="hud-timetext">🕐 0s</span>
+    </div>
     <div id="hud-lives">♥♥♥</div>
   </div>
 
   <!-- 첫 화면 -->
   <div id="screen-menu" class="screen">
     <h1>boom</h1>
-    <p class="tagline">피하고, 먹고, 살아남아라 — 90초 스코어어택</p>
-    <ul class="rules-brief">
-      <li><span class="good">푸른 것</span>은 먹고 <span class="bad">붉은 것</span>은 피한다</li>
-      <li>쉬지 않고 먹으면 <b>콤보 ×5</b>, 아슬하게 스치면 <b>니어미스 보너스</b></li>
-      <li>라이프 3개. 시간이 끝나면 클리어!</li>
-    </ul>
+    <p class="tagline"><span class="good">파란 건 먹고</span>, <span class="bad">빨간 건 피한다</span>. 그게 전부다.</p>
+    <p class="tagline sub">목숨 3개. 얼마나 오래, 얼마나 많이 먹고 버티는가.</p>
     <input id="name-input" maxlength="12" placeholder="이름 입력" autocomplete="off">
     <div class="mode-row">
       <button class="mode-btn selected" data-mode="CLASSIC">CLASSIC</button>
     </div>
     <button id="btn-start" class="primary">START</button>
     <button id="btn-howto">자세히 보기 <span id="howto-badge" class="badge">!</span></button>
-    <p style="font-size:12px;opacity:.55">마우스 따라가기 또는 방향키/WASD · M: 사운드 토글</p>
+    <p class="hint">마우스 따라가기 또는 방향키/WASD · M: 사운드</p>
   </div>
 
-  <!-- 자세히 보기 모달 -->
+  <!-- 자세히 보기 모달 (초간단) -->
   <div id="modal-howto" class="modal hidden">
     <div class="modal-box">
-      <h2>오브젝트 도감 — 알면 점수가 오른다</h2>
       <div id="howto-content"></div>
       <button id="btn-howto-close" class="primary">알았다, 시작하자</button>
     </div>
   </div>
 
-  <!-- 결과 화면 -->
+  <!-- 결과 화면: [내 기록] [리더보드] + [한 판 더] 3그룹 -->
   <div id="screen-result" class="screen hidden">
-    <h2 id="result-cause"></h2>
-    <div id="result-score" class="big-score">0</div>
-    <div id="result-best"></div>
-    <div id="result-stats"></div>
-    <button id="btn-retry" class="primary">한 판 더 (Space)</button>
-    <div class="board-tabs">
-      <button data-board="score" class="tab selected">점수</button>
-      <button data-board="survival" class="tab">생존</button>
-      <button data-board="combo" class="tab">콤보</button>
-      <button data-board="nearmiss" class="tab">니어미스</button>
+    <div class="result-grid">
+      <div class="result-card" id="card-me">
+        <div class="card-label">내 기록</div>
+        <h2 id="result-cause"></h2>
+        <div id="result-score" class="big-score">0</div>
+        <div id="result-best"></div>
+        <div id="result-rank"></div>
+        <div id="result-stats"></div>
+      </div>
+      <div class="result-card" id="card-board">
+        <div class="card-label">리더보드</div>
+        <div class="board-tabs">
+          <button data-board="score" class="tab selected">점수</button>
+          <button data-board="survival" class="tab">생존</button>
+          <button data-board="combo" class="tab">콤보</button>
+          <button data-board="nearmiss" class="tab">니어미스</button>
+        </div>
+        <ol id="board-list"></ol>
+      </div>
     </div>
-    <ol id="board-list"></ol>
+    <button id="btn-retry" class="primary retry">한 판 더 (Space)</button>
   </div>
 </div>
 <script type="module" src="js/main.js"></script>

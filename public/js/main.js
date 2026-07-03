@@ -7,7 +7,7 @@ import { showScreen, initHowto, showResult, renderBoard } from './ui.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('game');
-const hud = { score: $('hud-score'), time: $('hud-time'), lives: $('hud-lives') };
+const hud = { score: $('hud-score'), lives: $('hud-lives'), barFill: $('hud-timefill'), barText: $('hud-timetext'), level: $('hud-level') };
 
 let cfg = null;
 let mode = 'CLASSIC';
@@ -24,6 +24,7 @@ async function startRun() {
   cfg = await getConfig(); // 매 런마다 최신 config — 관리자 밸런싱 즉시 반영
   showScreen('play');
   playing = true;
+  hud.level.textContent = 'Lv.1';
   runGame(cfg, canvas, hud, onRunEnd);
 }
 

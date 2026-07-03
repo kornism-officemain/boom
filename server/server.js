@@ -58,7 +58,7 @@ app.post('/api/scores', (req, res) => {
     name,
     mode: String(b.mode || 'CLASSIC').slice(0, 16),
     score: clamp(b.score, 1000000),
-    survival: clamp(b.survival, 200),
+    survival: clamp(b.survival, 7200),
     maxCombo: clamp(b.maxCombo, 5),
     nearMiss: clamp(b.nearMiss, 500),
     cleared: !!b.cleared,

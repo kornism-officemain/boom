@@ -37,7 +37,11 @@ export const sfx = {
 
   collect(combo = 1) { tone(392 * Math.pow(1.1225, Math.min(combo, 8)), 0.07, 'triangle', 0.11); }, // 콤보 오를수록 피치 ↑
   special() { tone(523, 0.08, 'triangle', 0.1); tone(784, 0.1, 'triangle', 0.1, 0.07); },
-  timeExt() { slide(440, 880, 0.25, 'sine', 0.12); },
+  heart() { slide(440, 880, 0.25, 'sine', 0.12); },
+  milestone() { tone(659, 0.1, 'triangle', 0.1); tone(880, 0.14, 'triangle', 0.1, 0.09); },
+  shoot() { tone(1200, 0.03, 'square', 0.025); },
+  kill() { slide(700, 180, 0.12, 'square', 0.09); },
+  levelup() { [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 0.14, 'triangle', 0.12, i * 0.08)); },
   nearMiss() { tone(1568, 0.04, 'sine', 0.05); },
   rush() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.09, 'square', 0.06, i * 0.06)); },
   hit() { slide(220, 55, 0.25, 'sawtooth', 0.18); },
