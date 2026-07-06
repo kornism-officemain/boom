@@ -11,6 +11,7 @@ const C = {
   orb: '#6df0c8', cobalt: '#bfe3ff', freeze: '#5fe6f7', magnet: '#3fe0c0',
   boost2: '#b18bff', boost3: '#ffc542',
   octopus: '#9b8bff', turtle: '#3fd6a0', whale: '#7fb8d9',
+  tang: '#5a9bff', tuna: '#2f6fe0', gold: '#ffd23e',
   drone: '#c4457a', hunter: '#ff4d6a', splitter: '#ff7b7b', bullet: '#ff4040', mine: '#e0563f',
 };
 // 콤보 강조: 단계별 색 (청록 → 파랑 → 보라 → 골드)
@@ -19,8 +20,9 @@ const UNLOCK_LABEL = {
   cobalt: '은빛 치어 떼', hunter: '아기상어', splitter: '분열 해파리', magnet: '소용돌이 진주',
   bullet: '작살', freeze: '냉기 진주', boost2: '×2 황금진주', mine: '기뢰복어', boost3: '×3 무지개진주',
   octopus: '아기 문어', turtle: '등불 거북',
+  tang: '파랑돔', tuna: '사파이어 참치', rainbow: '무지개 물고기',
 };
-const GOOD_TYPES = new Set(['cobalt', 'freeze', 'magnet', 'boost2', 'boost3', 'octopus', 'turtle']);
+const GOOD_TYPES = new Set(['cobalt', 'freeze', 'magnet', 'boost2', 'boost3', 'octopus', 'turtle', 'tang', 'tuna', 'rainbow']);
 
 export function runGame(cfg, canvas, hud, onEnd, meta = {}) {
   const ctx = canvas.getContext('2d');
@@ -44,6 +46,7 @@ export function runGame(cfg, canvas, hud, onEnd, meta = {}) {
     unlockQueue: Object.entries(cfg.schedule).sort((a, b) => a[1] - b[1]),
     rivalIdx: 0, bestNotified: false,
     shield: false, whale: null, whaleTimer: rand(cfg.whale.minGap, cfg.whale.maxGap),
+    gold: null, goldAt: rand(cfg.goldWhale.atMin, cfg.goldWhale.atMax), goldDone: false, // 잭팟 — 한 판 1회
     seen: new Set(['orb', 'drone']),   // 도감 — 이번 런에 만난 생물
   };
   // 배경: 심연 그라디언트 + 마린 스노우 + 빛기둥 (심해)
@@ -188,7 +191,35 @@ export function runGame(cfg, canvas, hud, onEnd, meta = {}) {
       },
     },
   };
-  const SPECIAL_GOODS = ['cobalt', 'freeze', 'magnet', 'boost2', 'boost3', 'octopus', 'turtle'];
+  // 보너스 물고기 티어 — 클수록 빠르고 비싸다 (파랑돔 15 / 참치 40 / 무지개 100)
+  const mkFish = (type) => ({
+    spawn: () => {
+      const a = rand(0, Math.PI * 2);
+      return { type, x: rand(60, W - 60), y: rand(60, H - 60), r: cfg[type].radius, life: cfg[type].life,
+               vx: Math.cos(a) * cfg[type].speed, vy: Math.sin(a) * cfg[type].speed * 0.5 };
+    },
+    collect: (g) => onCollect(cfg[type].score, g),
+  });
+  GOODS.tang = mkFish('tang');
+  GOODS.tuna = mkFish('tuna');
+  GOODS.rainbow = { // 🌈 레어 — 무지개 발광, 잡는 순간 축제
+    ...mkFish('rainbow'),
+    collect: (g) => {
+      onCollect(cfg.rainbow.score, g);
+      s.slowmo = Math.max(s.slowmo, 0.3);
+      ring(fx, g.x, g.y, `hsl(${(s.t * 240) % 360},100%,65%)`, 150, 380);
+      ring(fx, g.x, g.y, `hsl(${(s.t * 240 + 120) % 360},100%,65%)`, 100, 300);
+      for (let i = 0; i < 16; i++) {
+        const a = rand(0, Math.PI * 2), v = rand(120, 320);
+        fx.parts.push({ x: g.x, y: g.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.6, max: 0.6,
+                        color: `hsl(${Math.floor(rand(0, 360))},100%,65%)`, r: 3 });
+      }
+      floatText(fx, g.x, g.y - 26, '🌈 무지개 물고기!', `hsl(${(s.t * 240) % 360},100%,70%)`, 26);
+      flash(fx, 'rgba(255,255,255,0.15)');
+      sfx.rare();
+    },
+  };
+  const SPECIAL_GOODS = ['cobalt', 'freeze', 'magnet', 'boost2', 'boost3', 'octopus', 'turtle', 'tang', 'tuna', 'rainbow'];
 
   const THREATS = {
     drone: { // 소행성 — 가장자리→직선 횡단
@@ -452,6 +483,64 @@ export function runGame(cfg, canvas, hud, onEnd, meta = {}) {
         s.whaleTimer = rand(cfg.whale.minGap, cfg.whale.maxGap);
       }
     }
+    // 👑 황금 대왕고래 — 한 판에 한 번뿐인 잭팟. 박치기 5번으로 사냥하라!
+    if (!s.goldDone && s.t >= s.goldAt) {
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      s.gold = { x: dir > 0 ? -200 : W + 200, y: rand(150, H - 230), dir, hp: cfg.goldWhale.hp, cool: 0 };
+      s.goldDone = true;
+      s.seen.add('goldwhale');
+      s.slowmo = Math.max(s.slowmo, 0.45);
+      flash(fx, 'rgba(255,210,62,0.3)');
+      if (hud.banner && hud.banner.classList) {
+        hud.banner.textContent = `👑 황금 대왕고래 출현! 박치기 ${cfg.goldWhale.hp}번!`;
+        hud.banner.classList.remove('hidden', 'anim'); hud.banner.classList.add('gold');
+        void hud.banner.offsetWidth; hud.banner.classList.add('anim');
+      }
+      sfx.jackpotIntro();
+    }
+    if (s.gold) {
+      const gw = s.gold;
+      gw.x += gw.dir * cfg.goldWhale.speed * dt;
+      gw.cool = Math.max(0, gw.cool - dt);
+      // 박치기 판정
+      if (gw.cool <= 0 && Math.hypot(s.p.x - gw.x, s.p.y - gw.y) < 70 + s.p.r) {
+        gw.cool = cfg.goldWhale.biteCooldown;
+        gw.hp--;
+        const gained = cfg.goldWhale.biteScore * s.boostMult;
+        s.score += gained; popScore(gained);
+        burst(fx, s.p.x, s.p.y, C.gold, 14, 260);
+        ring(fx, gw.x, gw.y, C.gold, 90, 300);
+        floatText(fx, s.p.x, s.p.y - 30, `콰앙! +${gained} (${gw.hp}남음)`, C.gold, 20);
+        shake(fx, 5);
+        s.slowmo = Math.max(s.slowmo, 0.1);
+        sfx.bite();
+        if (gw.hp <= 0) { // 💰 JACKPOT!
+          const jp = cfg.goldWhale.jackpot * s.boostMult;
+          s.score += jp; popScore(jp);
+          s.slowmo = Math.max(s.slowmo, 0.5);
+          for (let i = 0; i < 4; i++) ring(fx, gw.x, gw.y, `hsl(${i * 90},100%,60%)`, 140 + i * 60, 300 + i * 60);
+          burst(fx, gw.x, gw.y, C.gold, 40, 420);
+          for (let i = 0; i < cfg.goldWhale.dropOrbs; i++) { // 플랑크톤 폭발
+            const a = (i / cfg.goldWhale.dropOrbs) * Math.PI * 2;
+            s.goods.push({ type: 'orb', x: Math.max(20, Math.min(W - 20, gw.x + Math.cos(a) * rand(60, 150))),
+                           y: Math.max(20, Math.min(H - 20, gw.y + Math.sin(a) * rand(60, 150))), r: cfg.orb.radius, life: 7 });
+          }
+          floatText(fx, gw.x, gw.y - 60, `💰 JACKPOT! +${jp}`, C.gold, 34);
+          flash(fx, 'rgba(255,210,62,0.35)');
+          if (hud.banner && hud.banner.classList) {
+            hud.banner.textContent = `💰 JACKPOT! +${jp}`;
+            hud.banner.classList.remove('hidden', 'anim'); hud.banner.classList.add('gold');
+            void hud.banner.offsetWidth; hud.banner.classList.add('anim');
+          }
+          sfx.jackpot();
+          s.gold = null;
+        }
+      }
+      if (s.gold && ((gw.dir > 0 && gw.x > W + 220) || (gw.dir < 0 && gw.x < -220))) {
+        floatText(fx, W / 2, 120, '대왕고래가 떠나갔다…', C.whale, 20);
+        s.gold = null;
+      }
+    }
     // 앰비언트 기포 — 심해 분위기
     s.bubbleTimer = (s.bubbleTimer ?? rand(0.5, 1.5)) - dt;
     if (s.bubbleTimer <= 0) {
@@ -472,6 +561,10 @@ export function runGame(cfg, canvas, hud, onEnd, meta = {}) {
         if (g.y > H - g.r) { g.y = H - g.r; g.vy = -Math.abs(g.vy); }
       }
       if (g.life != null) { g.life -= dt; if (g.life <= 0) g.dead = true; }
+      if (g.type === 'rainbow' && Math.random() < 0.3) { // 무지개 스파클 트레일
+        fx.parts.push({ x: g.x + rand(-8, 8), y: g.y + rand(-8, 8), vx: rand(-20, 20), vy: rand(-20, 20),
+                        life: 0.35, max: 0.35, color: `hsl(${Math.floor(rand(0, 360))},100%,70%)`, r: 2 });
+      }
       const mr = s.rush > 0 ? cfg.rush.magnetRadius : (s.magnet > 0 ? cfg.magnet.radius : 0);
       if (mr) {
         const d = Math.hypot(s.p.x - g.x, s.p.y - g.y);
@@ -622,6 +715,33 @@ export function runGame(cfg, canvas, hud, onEnd, meta = {}) {
       ctx.moveTo(g.r * 0.3, -g.r * 0.6); ctx.lineTo(g.r * 0.2, g.r * 0.3); ctx.stroke();
       const lg2 = 0.6 + Math.sin(s.t * 4) * 0.4;
       glowCircle(0, -g.r * 0.85, g.r * 0.18, '#aef3ff', 12 * lg2, lg2); // 등불
+      ctx.restore(); ctx.globalAlpha = 1;
+    } else if (g.type === 'tang' || g.type === 'tuna' || g.type === 'rainbow') { // 보너스 물고기 — 클수록 고급
+      const dir3 = g.vx >= 0 ? 1 : -1;
+      const rb = g.type === 'rainbow';
+      const hue = (s.t * 300) % 360;
+      const c1 = rb ? `hsl(${hue},100%,82%)` : (g.type === 'tang' ? '#bfe0ff' : '#eaf6ff');
+      const c2 = rb ? `hsl(${(hue + 90) % 360},100%,55%)` : C[g.type];
+      ctx.save(); ctx.translate(g.x, g.y); ctx.scale(dir3, 1); ctx.globalAlpha = blink;
+      ctx.shadowColor = rb ? c2 : C[g.type]; ctx.shadowBlur = rb ? 20 : 8;
+      const fg2 = ctx.createLinearGradient(0, -g.r, 0, g.r);
+      fg2.addColorStop(0, c1); fg2.addColorStop(1, c2);
+      ctx.fillStyle = fg2;
+      ctx.beginPath(); ctx.ellipse(0, 0, g.r * 1.2, g.r * 0.68, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      const wig3 = Math.sin(s.t * 14 + g.x) * 0.4;
+      ctx.fillStyle = rb ? `hsla(${(hue + 180) % 360},100%,70%,0.9)` : 'rgba(200,230,255,0.85)';
+      ctx.save(); ctx.translate(-g.r * 1.1, 0); ctx.rotate(wig3);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-g.r * 0.75, -g.r * 0.5); ctx.lineTo(-g.r * 0.75, g.r * 0.5); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      circle(g.r * 0.55, -g.r * 0.12, g.r * 0.14, '#123', blink);
+      if (rb) { // 무지개 대시 링 — 보자마자 레어
+        ctx.strokeStyle = `hsl(${(hue + 180) % 360},100%,65%)`; ctx.lineWidth = 2;
+        ctx.globalAlpha = blink * 0.8;
+        ctx.setLineDash([5, 5]); ctx.lineDashOffset = -s.t * 40;
+        ctx.beginPath(); ctx.arc(0, 0, g.r + 8, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+      }
       ctx.restore(); ctx.globalAlpha = 1;
     } else { // 진주 — 진주광택 배지 + 컬러 링 + 글리프
       const GLYPH = { freeze: '❄', magnet: '◎', boost2: '★', boost3: '✦' };
@@ -789,6 +909,46 @@ export function runGame(cfg, canvas, hud, onEnd, meta = {}) {
       ctx.beginPath(); ctx.arc(52, -12, 5, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(40, 10); ctx.quadraticCurveTo(60, 20, 76, 8); ctx.stroke();
       ctx.restore();
+    }
+    // 👑 황금 대왕고래 — 보자마자 "엄청난 것"임을 알린다
+    if (s.gold) {
+      const w2 = s.gold;
+      const gy = w2.y + Math.sin(s.t * 1.8) * 5, gx = w2.x;
+      glowCircle(gx, gy, 95, 'rgba(255,210,62,0.16)', 30, 0.8 + Math.sin(s.t * 4) * 0.2); // 황금 오라 맥동
+      ctx.strokeStyle = `hsl(${(s.t * 200) % 360},100%,60%)`; ctx.lineWidth = 3; // 무지개 회전 링
+      ctx.globalAlpha = 0.7;
+      ctx.setLineDash([12, 10]); ctx.lineDashOffset = -s.t * 50;
+      ctx.beginPath(); ctx.arc(gx, gy, 108, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha = 1;
+      ctx.save(); ctx.translate(gx, gy); ctx.scale(w2.dir, 1);
+      const flk2 = Math.sin(s.t * 3) * 0.3; // 꼬리
+      ctx.fillStyle = '#d9a520';
+      ctx.save(); ctx.translate(-90, 0); ctx.rotate(flk2);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-30, -28, -44, -16);
+      ctx.quadraticCurveTo(-28, -2, -44, 14); ctx.quadraticCurveTo(-28, 26, 0, 5); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      const wg2 = ctx.createLinearGradient(0, -52, 0, 52); // 황금 몸통
+      wg2.addColorStop(0, '#ffe89a'); wg2.addColorStop(0.6, C.gold); wg2.addColorStop(1, '#c8860e');
+      ctx.fillStyle = wg2;
+      ctx.beginPath(); ctx.ellipse(0, 0, 98, 52, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,248,220,0.6)';
+      ctx.beginPath(); ctx.ellipse(6, 26, 80, 22, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#6b4a00'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; // 웃는 눈 + 입
+      ctx.beginPath(); ctx.arc(60, -14, 6, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(46, 12); ctx.quadraticCurveTo(68, 24, 88, 10); ctx.stroke();
+      ctx.restore();
+      for (let i = 0; i < cfg.goldWhale.hp; i++) { // 남은 박치기 HP 진주
+        const bx = gx - (cfg.goldWhale.hp - 1) * 11 + i * 22;
+        const on = i < w2.hp;
+        if (on) glowCircle(bx, gy - 80, 7, C.gold, 8, 1);
+        else circle(bx, gy - 80, 7, 'rgba(120,110,80,0.4)');
+      }
+      ctx.font = '26px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('👑', gx, gy - 98);
+      if (Math.random() < 0.35) { // 금가루
+        fx.parts.push({ x: gx + rand(-90, 90), y: gy + rand(-45, 45), vx: rand(-15, 15), vy: rand(-30, -10),
+                        life: 0.5, max: 0.5, color: 'rgba(255,220,100,0.8)', r: 2 });
+      }
     }
     // 빛기둥 — 은은하게 일렁임
     for (const sh of SHAFTS) {

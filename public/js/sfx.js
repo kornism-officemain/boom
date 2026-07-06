@@ -42,6 +42,10 @@ export const sfx = {
   shoot() { tone(1200, 0.03, 'square', 0.025); },
   kill() { slide(700, 180, 0.12, 'square', 0.09); },
   whale() { slide(85, 55, 1.4, 'sine', 0.2); slide(140, 95, 1.2, 'sine', 0.08); }, // 고래 울음
+  rare() { [880, 1174, 1568, 2093].forEach((f, i) => tone(f, 0.12, 'triangle', 0.1, i * 0.06)); }, // 무지개 반짝
+  bite() { tone(150, 0.09, 'square', 0.2); slide(420, 180, 0.12, 'sawtooth', 0.1); }, // 박치기 쿵
+  jackpotIntro() { slide(70, 50, 1.6, 'sine', 0.22); [392, 494, 587, 740].forEach((f, i) => tone(f, 0.16, 'triangle', 0.12, 0.3 + i * 0.12)); },
+  jackpot() { [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(f, 0.22, 'square', 0.1, i * 0.09)); tone(65, 0.5, 'sine', 0.25); },
   shield() { tone(880, 0.07, 'triangle', 0.1); tone(1320, 0.12, 'triangle', 0.1, 0.06); },
   shieldBreak() { slide(620, 140, 0.22, 'square', 0.14); },
   levelup() { [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 0.14, 'triangle', 0.12, i * 0.08)); },

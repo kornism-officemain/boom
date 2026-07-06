@@ -7,6 +7,7 @@ const $ = (id) => document.getElementById(id);
 export const DEX_NAMES = {
   orb: '발광 플랑크톤', cobalt: '은빛 치어', freeze: '냉기 진주', magnet: '소용돌이 진주',
   boost2: '황금진주', boost3: '무지개진주', octopus: '아기 문어', turtle: '등불 거북', whale: '심해 고래',
+  tang: '파랑돔', tuna: '사파이어 참치', rainbow: '무지개 물고기', goldwhale: '황금 대왕고래',
   drone: '독가시 성게', hunter: '아기상어', splitter: '분열 해파리', bullet: '작살', mine: '기뢰복어',
 };
 export const DEX_TOTAL = Object.keys(DEX_NAMES).length;
@@ -44,8 +45,10 @@ const CATALOG = `
   · 진주 효과 중 물리면 효과 소멸 — 지켜라<br>
   · 포식자를 아슬하게 스치면 <b>+2</b> · 25마리 먹을 때마다 <b>광란의 포식</b>(4초 무적+흡입)<br>
   · <b>기뢰복어</b>는 부풀기 전엔 무해 · <b>작살</b>은 경고선을 보고 피할 것<br>
+  · 보너스 물고기는 <b>클수록 비싸다</b>: 치어 5 → 파랑돔 15 → 참치 40 → <b>🌈 무지개 물고기 100</b><br>
   · 🐙 <b>아기 문어</b>=플랑크톤 파티 · 🐢 <b>등불 거북</b>=실드 1회 · 🐋 <b>고래</b>가 지나가면 잭팟 타임<br>
-  · 만난 생물은 <b>생물도감</b>(14종)에 기록된다 — 전부 모아보자
+  · <b>👑 황금 대왕고래</b>가 나타나면 <b>몸통 박치기 5번</b> — 다 깎으면 💰JACKPOT +500<br>
+  · 만난 생물은 <b>생물도감</b>(18종)에 기록된다 — 전부 모아보자
 </div>`;
 
 export function initHowto() {

@@ -11,6 +11,10 @@
   "octopus":    { "life": 6, "radius": 12, "weight": 0.025, "scatter": 8 },
   "turtle":     { "life": 7, "radius": 13, "speed": 26, "weight": 0.02 },
   "whale":      { "minGap": 50, "maxGap": 95, "speed": 62, "dropEvery": 0.45 },
+  "tang":       { "life": 4, "score": 15, "speed": 150, "radius": 12, "weight": 0.05 },
+  "tuna":       { "life": 3.5, "score": 40, "speed": 260, "radius": 16, "weight": 0.03 },
+  "rainbow":    { "life": 3, "score": 100, "speed": 300, "radius": 15, "weight": 0.012 },
+  "goldWhale":  { "atMin": 60, "atMax": 90, "speed": 46, "hp": 5, "biteScore": 50, "jackpot": 500, "biteCooldown": 0.35, "dropOrbs": 12 },
   "hunter":     { "life": 6, "maxAlive": 2, "maxAliveLate": 3, "lateAt": 90, "speed": 110, "weight": 0.25 },
   "splitter":   { "radius": 9, "splitMin": 0.5, "splitMax": 1.3, "weight": 0.2 },
   "bullet":     { "telegraph": 0.8, "speed": 900, "radius": 6, "weight": 0.18 },
@@ -19,6 +23,6 @@
   "nearMiss":   { "dist": 30, "score": 2, "slowmo": 0.12 },
   "survival":   { "perSec": 1, "milestoneEvery": 30, "milestoneBonus": 30 },
   "rush":       { "need": 25, "duration": 4, "magnetRadius": 160 },
-  "schedule":   { "cobalt": 10, "hunter": 10, "splitter": 20, "magnet": 20, "octopus": 25, "bullet": 35, "freeze": 35, "turtle": 40, "boost2": 45, "mine": 50, "boost3": 70 },
+  "schedule":   { "cobalt": 10, "hunter": 10, "splitter": 20, "magnet": 20, "tang": 20, "octopus": 25, "bullet": 35, "freeze": 35, "turtle": 40, "boost2": 45, "tuna": 45, "mine": 50, "rainbow": 60, "boost3": 70 },
   "leaderboard": { "topN": 20 }
 }
